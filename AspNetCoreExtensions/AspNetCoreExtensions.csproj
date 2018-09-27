@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <Version>1.0.1</Version>
+    <PackageId>NeuroSpeech.AspNetCoreExtensions</PackageId>
+    <Authors>Akash Kava</Authors>
+    <Company>NeuroSpeech Technologies Pvt Ltd</Company>
+    <Product>Useful Asp.Net Core Extensions</Product>
+    <Description>Dependency Injection helper attributes
+Useful String Extensions
+Useful Dependency Injection Extensions
+CSVArrayModel Provider
+Useful Cache Extensions</Description>
+    <PackageProjectUrl>https://github.com/neurospeech/asp-net-core-extensions</PackageProjectUrl>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Http401ForbiddenException.cs" />
+    <Compile Remove="Http500InternalServerError.cs" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.All" Version="2.1.4" />
+    <PackageReference Include="Microsoft.AspNetCore.Http.Features" Version="2.1.1" />
+    <PackageReference Include="MimeKit" Version="2.0.6" />
+    <PackageReference Include="NeuroSpeech.CrockfordBase32" Version="1.0.0" />
+    <PackageReference Include="NeuroSpeech.RetroCoreFit" Version="1.0.13" />
+    <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
+  </ItemGroup>
+
+</Project>
