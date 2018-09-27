@@ -1,2 +1,7 @@
-# asp-net-core-extensions
-ASP.NET Core  Extensions and Helpers
+# ASP.NET Core  Extensions and Helpers
+
+1. Dependency Injection helper attributes
+2. Useful String Extensions
+3. Useful Dependency Injection Extensions
+4. CSVArrayModel Provider
+5. Useful Cache Extensions
