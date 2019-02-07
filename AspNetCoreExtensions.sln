@@ -3,12 +3,28 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.28010.2036
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AspNetCoreExtensions", "AspNetCoreExtensions\AspNetCoreExtensions.csproj", "{7B1A472B-10AA-4E6D-9375-5DEE215A23DA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AspNetCoreExtensions", "AspNetCoreExtensions\AspNetCoreExtensions.csproj", "{7B1A472B-10AA-4E6D-9375-5DEE215A23DA}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{864DBCF0-575F-42E6-B372-5C4A7AA0B91E}"
 	ProjectSection(SolutionItems) = preProject
 		.gitignore = .gitignore
 	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StringExtensions", "StringExtensions\StringExtensions.csproj", "{6C5D5BF4-238C-440F-AB16-C743DC5B7D43}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "RetroFit", "RetroFit", "{FA92D44B-A1DA-45E2-8B03-05DFF96FD164}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Core", "Core", "{FA937D44-8531-46C8-B79C-28E1E2ACE98D}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RetroCoreFit", "RetroFit\RetroCoreFit\RetroCoreFit.csproj", "{0DA3105B-5F7A-4A73-843C-D022B2F755AC}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RetroCoreFit.Tests", "RetroFit\RetroCoreFit.Tests\RetroCoreFit.Tests.csproj", "{9C86665B-9AC1-4C98-9CAA-396F536D3CA4}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "NodePackageService", "NodePackageService", "{6171F658-37E5-4889-9CBD-1C51945918CC}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSpeech.NodePackageService", "NodePackageService\NodePackageService\NeuroSpeech.NodePackageService.csproj", "{584FFBE2-A703-4163-B561-02973E43F911}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NodeServerTest", "NodePackageService\NodeServerTest\NodeServerTest.csproj", "{ECE47369-C11A-4545-96D7-EC60AC563F17}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -20,9 +36,37 @@ Global
 		{7B1A472B-10AA-4E6D-9375-5DEE215A23DA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7B1A472B-10AA-4E6D-9375-5DEE215A23DA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7B1A472B-10AA-4E6D-9375-5DEE215A23DA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6C5D5BF4-238C-440F-AB16-C743DC5B7D43}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6C5D5BF4-238C-440F-AB16-C743DC5B7D43}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6C5D5BF4-238C-440F-AB16-C743DC5B7D43}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6C5D5BF4-238C-440F-AB16-C743DC5B7D43}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0DA3105B-5F7A-4A73-843C-D022B2F755AC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0DA3105B-5F7A-4A73-843C-D022B2F755AC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0DA3105B-5F7A-4A73-843C-D022B2F755AC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0DA3105B-5F7A-4A73-843C-D022B2F755AC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9C86665B-9AC1-4C98-9CAA-396F536D3CA4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9C86665B-9AC1-4C98-9CAA-396F536D3CA4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9C86665B-9AC1-4C98-9CAA-396F536D3CA4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9C86665B-9AC1-4C98-9CAA-396F536D3CA4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{584FFBE2-A703-4163-B561-02973E43F911}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{584FFBE2-A703-4163-B561-02973E43F911}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{584FFBE2-A703-4163-B561-02973E43F911}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{584FFBE2-A703-4163-B561-02973E43F911}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ECE47369-C11A-4545-96D7-EC60AC563F17}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ECE47369-C11A-4545-96D7-EC60AC563F17}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ECE47369-C11A-4545-96D7-EC60AC563F17}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ECE47369-C11A-4545-96D7-EC60AC563F17}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{7B1A472B-10AA-4E6D-9375-5DEE215A23DA} = {FA937D44-8531-46C8-B79C-28E1E2ACE98D}
+		{6C5D5BF4-238C-440F-AB16-C743DC5B7D43} = {FA937D44-8531-46C8-B79C-28E1E2ACE98D}
+		{0DA3105B-5F7A-4A73-843C-D022B2F755AC} = {FA92D44B-A1DA-45E2-8B03-05DFF96FD164}
+		{9C86665B-9AC1-4C98-9CAA-396F536D3CA4} = {FA92D44B-A1DA-45E2-8B03-05DFF96FD164}
+		{584FFBE2-A703-4163-B561-02973E43F911} = {6171F658-37E5-4889-9CBD-1C51945918CC}
+		{ECE47369-C11A-4545-96D7-EC60AC563F17} = {6171F658-37E5-4889-9CBD-1C51945918CC}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {65594421-E05B-4646-94E0-260254DC3212}

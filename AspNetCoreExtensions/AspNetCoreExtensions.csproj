@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TargetFramework>netcoreapp2.2</TargetFramework>
     <Version>1.0.1</Version>
     <PackageId>NeuroSpeech.AspNetCoreExtensions</PackageId>
     <Authors>Akash Kava</Authors>
@@ -21,11 +21,15 @@ Useful Cache Extensions</Description>
   </ItemGroup>
   
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.All" Version="2.1.4" />
-    <PackageReference Include="Microsoft.AspNetCore.Http.Features" Version="2.1.1" />
-    <PackageReference Include="MimeKit" Version="2.0.6" />
+    <PackageReference Include="Microsoft.AspNetCore.All" Version="2.2.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Http.Features" Version="2.2.0" />
+    <PackageReference Include="MimeKit" Version="2.1.2" />
     <PackageReference Include="NeuroSpeech.CrockfordBase32" Version="1.0.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <ProjectReference Include="..\StringExtensions\StringExtensions.csproj" />
   </ItemGroup>
 
 </Project>

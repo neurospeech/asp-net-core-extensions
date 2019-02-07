@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.2</TargetFramework>
+    <PackageId>NeuroSpeech.StringExtensions</PackageId>
+    <Authors>Akash Kava</Authors>
+    <Company>NeuroSpeech Technologies Pvt Ltd</Company>
+  </PropertyGroup>
+
+</Project>

@@ -2,3 +2,13 @@
 .vs/
 AspNetCoreExtensions/obj
 AspNetCoreExtensions/bin
+/NodePackageService/NodePackageService/bin
+/NodePackageService/NodePackageService/obj
+/NodePackageService/NodeServerTest/bin
+/NodePackageService/NodeServerTest/obj
+/RetroFit/RetroCoreFit/bin
+/RetroFit/RetroCoreFit/obj
+/RetroFit/RetroCoreFit.Tests/bin
+/RetroFit/RetroCoreFit.Tests/obj
+/StringExtensions/bin
+/StringExtensions/obj

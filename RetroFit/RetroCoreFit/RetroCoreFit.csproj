@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.2</TargetFramework>
+    <PackageId>NeuroSpeech.RetroCoreFit</PackageId>
+    <Authors>Akash Kava</Authors>
+    <Company>NeuroSpeech Technologies Pvt Ltd</Company>
+    <PackageProjectUrl>https://github.com/neurospeech/retro-core-fit</PackageProjectUrl>
+    <PackageLicenseUrl>https://github.com/neurospeech/retro-core-fit/blob/master/LICENSE</PackageLicenseUrl>
+    <RepositoryUrl>https://github.com/neurospeech/retro-core-fit.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <Version>1.0.2</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
+    <PackageReference Include="NeuroSpeech.AspNetCoreExtensions" Version="1.0.3"/>
+  </ItemGroup>
+
+</Project>
