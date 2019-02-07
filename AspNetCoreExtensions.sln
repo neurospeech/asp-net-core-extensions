@@ -8,11 +8,15 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{864DBCF0-575F-42E6-B372-5C4A7AA0B91E}"
 	ProjectSection(SolutionItems) = preProject
 		.gitignore = .gitignore
+		README.md = README.md
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "StringExtensions", "StringExtensions\StringExtensions.csproj", "{6C5D5BF4-238C-440F-AB16-C743DC5B7D43}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "RetroFit", "RetroFit", "{FA92D44B-A1DA-45E2-8B03-05DFF96FD164}"
+	ProjectSection(SolutionItems) = preProject
+		RetroFit\README.md = RetroFit\README.md
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Core", "Core", "{FA937D44-8531-46C8-B79C-28E1E2ACE98D}"
 EndProject
