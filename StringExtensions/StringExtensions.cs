@@ -71,6 +71,20 @@ namespace NeuroSpeech
             return text.Equals(test, StringComparison.OrdinalIgnoreCase);
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="text"></param>
+        /// <param name="test"></param>
+        /// <returns></returns>
+        public static bool EqualsIgnoreCase(this string text, params string[] test)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return test.Any(t => string.IsNullOrWhiteSpace(t));
+            return test.Any(t => !string.IsNullOrWhiteSpace(t) && text.Equals(t, StringComparison.OrdinalIgnoreCase));
+        }
+
+
 
 
         /// <summary>
