@@ -11,7 +11,7 @@ namespace NeuroSpeech
     {
 
         /// <summary>
-        /// 
+        /// Extract string between given start and end from given text
         /// </summary>
         /// <param name="text"></param>
         /// <param name="start"></param>
@@ -45,7 +45,7 @@ namespace NeuroSpeech
 
 
         /// <summary>
-        /// 
+        /// Starts with (Case Insensitive)
         /// </summary>
         /// <param name="text"></param>
         /// <param name="test"></param>
@@ -57,7 +57,7 @@ namespace NeuroSpeech
 
 
         /// <summary>
-        /// 
+        ///  Equals (Case Insensitive) 
         /// </summary>
         /// <param name="text"></param>
         /// <param name="test"></param>
@@ -74,7 +74,7 @@ namespace NeuroSpeech
 
 
         /// <summary>
-        /// 
+        /// Returns characters of specified length in backwords
         /// </summary>
         /// <param name="text"></param>
         /// <param name="charLength"></param>
@@ -89,7 +89,7 @@ namespace NeuroSpeech
         }
 
         /// <summary>
-        ///  Split Ids
+        ///  Split string as
         /// </summary>
         public static List<T> SplitAs<T>(
             this string ctIDs,
@@ -116,6 +116,54 @@ namespace NeuroSpeech
                 ids.Add(v);
             }
             return ids;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="input"></param>
+        /// <param name="separator"></param>
+        /// <returns></returns>
+        public static (string, string) ExtractTill(this string input, string separator)
+        {
+            int index = input.IndexOf(separator);
+            if (index == -1)
+            {
+                return (input, "");
+            }
+            return (input.Substring(0, index), input.Substring(index + 1));
+        }
+
+        /// <summary>
+        /// Extract substring till given separator
+        /// </summary>
+        /// <param name="input"></param>
+        /// <param name="separator"></param>
+        /// <returns></returns>
+        public static string SubstringTill(this string input, string separator)
+        {
+            bool scoped = false;
+            if (input.StartsWith("@"))
+            {
+                scoped = true;
+                input = input.Substring(1);
+            }
+            input = input.Split(separator)[0];
+            if (scoped)
+            {
+                input = "@" + input;
+            }
+            return input;
+        }
+
+        /// <summary>
+        /// Quote given stringr
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
+        public static string ToQuoted(this string input)
+        {
+            return $"\"{input}\"";
         }
     }
 }
