@@ -3,7 +3,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
-namespace Microsoft.AspNetCore.Mvc
+namespace Microsoft.Extensions.DependencyInjection
 {
     [System.AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, Inherited = true, AllowMultiple = false)]
     [ExcludeFromCodeCoverage]

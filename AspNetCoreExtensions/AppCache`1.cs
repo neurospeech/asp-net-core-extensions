@@ -1,9 +1,10 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Microsoft.AspNetCore.Mvc
+namespace Microsoft.Extensions.Caching
 {
     /// <summary>
     /// 

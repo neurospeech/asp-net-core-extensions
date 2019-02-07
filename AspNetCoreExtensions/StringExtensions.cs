@@ -1,7 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
-namespace Microsoft.AspNetCore.Mvc
+namespace NeuroSpeech
 {
     /// <summary>
     /// 
@@ -85,6 +86,36 @@ namespace Microsoft.AspNetCore.Mvc
             if (text.Length <= charLength)
                 return text;
             return text.Substring(text.Length - charLength);
+        }
+
+        /// <summary>
+        ///  Split Ids
+        /// </summary>
+        public static List<T> SplitAs<T>(
+            this string ctIDs,
+            Func<string, T> converter = null)
+        {
+            List<T> ids = new List<T>();
+
+            if (string.IsNullOrWhiteSpace(ctIDs))
+                return ids;
+
+            if (converter == null)
+            {
+                converter = (value) =>
+                {
+                    return (T)Convert.ChangeType(value, typeof(T));
+                };
+            }
+
+            foreach (string token in ctIDs.Split(',', ';'))
+            {
+                if (string.IsNullOrWhiteSpace(token))
+                    continue;
+                T v = converter(token);
+                ids.Add(v);
+            }
+            return ids;
         }
     }
 }

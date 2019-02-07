@@ -4,7 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 
-namespace Microsoft.AspNetCore.Mvc
+namespace NeuroSpeech
 {
     [ExcludeFromCodeCoverage]
     public static class AssemblyRegistrationExtensions
