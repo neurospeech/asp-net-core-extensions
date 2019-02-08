@@ -28,12 +28,14 @@ namespace NeuroSpeech
 
         public PackagePath(
             NodePackageServiceOptions options,
-            (string, string, string) p,
+            PackagePathSegments p,
             bool isPrivate)
         {
             this.Options = options;
             this.isPrivate = isPrivate;
-            (this.Package, this.Version, this.Path) = p;
+            this.Package = p.Package;
+            this.Version = p.Version;
+            this.Path = p.Path;
         }
     }
 }

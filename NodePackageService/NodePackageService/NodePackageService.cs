@@ -38,7 +38,10 @@ namespace NeuroSpeech
 
         public PackagePath ParsePath(string sp)
         {
-            var (package, version, path) = sp.ParseNPMPath();
+            var pps = sp.ParseNPMPath();
+
+            var package = pps.Package;
+            var version = pps.Version;
 
             var existing = this.privatePackages.FirstOrDefault(x => x.Package == package);
 
@@ -51,7 +54,7 @@ namespace NeuroSpeech
                 }
             }
 
-            return new PackagePath(this.Options, (package, version, path), existing != null);
+            return new PackagePath(this.Options, pps, existing != null);
         }
 
         public async Task DownloadAsync(PackagePath packagePath)

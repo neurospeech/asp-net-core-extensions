@@ -9,13 +9,13 @@ namespace NodeServerTest
         [Fact]
         public void Parse()
         {
-            var (package, version, path) = "root".ParseNPMPath();
+            var (package, version, path) = "root".ParseNPMPath().Deconstruct;
 
             Assert.Equal("", version);
             Assert.Equal("root", package);
             Assert.Equal("", path);
 
-            (package, version, path) = "@root/package".ParseNPMPath();
+            (package, version, path) = "@root/package".ParseNPMPath().Deconstruct;
 
             Assert.Equal("", version);
             Assert.Equal("@root/package", package);
@@ -26,13 +26,13 @@ namespace NodeServerTest
         [Fact]
         public void ParseWithVersion()
         {
-            var (package, version, path) = "root@1.1".ParseNPMPath();
+            var (package, version, path) = "root@1.1".ParseNPMPath().Deconstruct;
 
             Assert.Equal("1.1", version);
             Assert.Equal("root", package);
             Assert.Equal("", path);
 
-            (package, version, path) = "@root/package@1.1".ParseNPMPath();
+            (package, version, path) = "@root/package@1.1".ParseNPMPath().Deconstruct;
 
             Assert.Equal("1.1", version);
             Assert.Equal("@root/package", package);
@@ -47,13 +47,13 @@ namespace NodeServerTest
         public void WithoutVersion()
         {
 
-            var (package, version, path) = "root/path".ParseNPMPath();
+            var (package, version, path) = "root/path".ParseNPMPath().Deconstruct;
 
             Assert.Equal("", version);
             Assert.Equal("root", package);
             Assert.Equal("path", path);
 
-            (package, version, path) = "root/path/1/2".ParseNPMPath();
+            (package, version, path) = "root/path/1/2".ParseNPMPath().Deconstruct;
 
             Assert.Equal("", version);
             Assert.Equal("root", package);
@@ -64,13 +64,13 @@ namespace NodeServerTest
         public void WithVersion()
         {
 
-            var (package, version, path) = "root@1.1/path".ParseNPMPath();
+            var (package, version, path) = "root@1.1/path".ParseNPMPath().Deconstruct;
 
             Assert.Equal("1.1", version);
             Assert.Equal("root", package);
             Assert.Equal("path", path);
 
-            (package, version, path) = "root@1.1/path/1/2".ParseNPMPath();
+            (package, version, path) = "root@1.1/path/1/2".ParseNPMPath().Deconstruct;
 
             Assert.Equal("1.1", version);
             Assert.Equal("root", package);
@@ -84,13 +84,13 @@ namespace NodeServerTest
         public void WithoutVersion()
         {
 
-            var (package, version, path) = "@root/package/path".ParseNPMPath();
+            var (package, version, path) = "@root/package/path".ParseNPMPath().Deconstruct;
 
             Assert.Equal("", version);
             Assert.Equal("@root/package", package);
             Assert.Equal("path", path);
 
-            (package, version, path) = "@root/package/path/1/2".ParseNPMPath();
+            (package, version, path) = "@root/package/path/1/2".ParseNPMPath().Deconstruct;
 
             Assert.Equal("", version);
             Assert.Equal("@root/package", package);
@@ -101,13 +101,13 @@ namespace NodeServerTest
         public void WithVersion()
         {
 
-            var (package, version, path) = "@root/package@1.1/path".ParseNPMPath();
+            var (package, version, path) = "@root/package@1.1/path".ParseNPMPath().Deconstruct;
 
             Assert.Equal("1.1", version);
             Assert.Equal("@root/package", package);
             Assert.Equal("path", path);
 
-            (package, version, path) = "@root/package@1.1/path/1/2".ParseNPMPath();
+            (package, version, path) = "@root/package@1.1/path/1/2".ParseNPMPath().Deconstruct;
 
             Assert.Equal("1.1", version);
             Assert.Equal("@root/package", package);
