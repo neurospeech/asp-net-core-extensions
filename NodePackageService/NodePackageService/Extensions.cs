@@ -6,11 +6,34 @@ using System.Text;
 
 namespace NeuroSpeech
 {
+
+    /// <summary>
+    /// Creates PackagePathSegments from string
+    /// </summary>
     public struct PackagePathSegments : IEquatable<PackagePathSegments>
     {
+        /// <summary>
+        /// Returns only package name including scope
+        /// </summary>
         public string Package;
+
+        /// <summary>
+        /// Returns only version if any
+        /// </summary>
         public string Version;
+
+        /// <summary>
+        /// Returns parsed path after package
+        /// </summary>
         public string Path;
+
+        /// <summary>
+        /// Returns package name and version in {Package}@{Version} format if version is present
+        /// </summary>
+        public string PackageAndVersion => 
+            string.IsNullOrWhiteSpace(Version) ?
+                Package :
+                $"{Package}@{Version}";
 
         public PackagePathSegments(string p, string v, string path)
         {
