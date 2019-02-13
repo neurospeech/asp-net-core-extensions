@@ -37,7 +37,7 @@ namespace Microsoft.AspNetCore.Mvc
 
         Task IValueProviderFactory.CreateValueProviderAsync(ValueProviderFactoryContext context)
         {
-            throw new NotImplementedException();
+            return this.CreateValueProviderAsync(context);
         }
     }
 
