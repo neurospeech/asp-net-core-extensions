@@ -73,6 +73,7 @@ namespace EF.Core.Bulk
         public static async Task<int> UpdateAsync<T>(this DbContext context, IQueryable<T> query)
             where T : class
         {
+            string sqlGenerated = null;
             try
             {
                 var queryInfo = GenerateCommand(context, query, true);
@@ -116,14 +117,14 @@ namespace EF.Core.Bulk
                 // string w = queryInfo.Sql.Predicate.ToString();
 
                 sql += $" FROM [{tableName}] as T1 INNER JOIN ({queryInfo.Command.CommandText}) AS T2 ON {pkeys}";
-
+                sqlGenerated = sql;
                 return await ExecuteAsync(context, queryInfo, sql);
 
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine(ex);
-                throw;
+                throw new InvalidOperationException($"Failed to execute: {sqlGenerated}", ex);
             }
         }
 

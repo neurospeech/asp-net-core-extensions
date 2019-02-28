@@ -29,7 +29,7 @@ namespace EF.Core.Bulk.Model
         }
 
         public ShopContext():base(new DbContextOptionsBuilder<ShopContext>()
-            .UseSqlServer(@"Data Source=(localdb)\MSSQLLocalDB;Initial Catalog=Shop;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False")
+            .UseSqlServer(@"Data Source=(localdb)\MSSQLLocalDB;Initial Catalog=Shop2;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False")
             .Options)
         {
 
@@ -62,6 +62,8 @@ namespace EF.Core.Bulk.Model
 
         
         public bool Archived { get; set; }
+
+        public DateTime? LastUpdated { get; set; }
 
         [InverseProperty(nameof(ProductAccount.Product))]
         public ICollection<ProductAccount> ProductAccounts { get; set; }

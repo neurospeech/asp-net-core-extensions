@@ -31,6 +31,23 @@ namespace EF.Core.Bulk.Tests
         }
 
         [Fact]
+        public async Task BulkUpdateDate()
+        {
+            using (var db = this.CreateContext())
+            {
+                var now = DateTime.UtcNow;
+
+                await db.ProductAccounts
+                    .Where(x => x.Account.Archived != false)
+                    .Select(x => x.Product)
+                    .Select(x => new Product
+                    {
+                        LastUpdated = now
+                    })
+                    .UpdateAsync();
+            }
+        }
+        [Fact]
         public async Task BulkInsert()
         {
             using (var db = this.CreateContext()) {
