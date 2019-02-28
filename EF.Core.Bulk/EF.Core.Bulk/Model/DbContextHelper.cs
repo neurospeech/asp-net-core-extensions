@@ -80,7 +80,7 @@ namespace EF.Core.Bulk
                 var entityType = context.Model.GetEntityTypes().FirstOrDefault(x => x.ClrType == typeof(T));
                 var keys = entityType.GetKeys().SelectMany(x => x.Properties);
 
-                if (!context.Database.IsSqlServer()) {
+                if (context.Database.IsInMemory()) {
                     var list = await query.ToListAsync();
 
                     foreach (var item in context.Set<T>().ToList()) {
