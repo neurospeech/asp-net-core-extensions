@@ -19,6 +19,11 @@ namespace EF.Core.Bulk
     public static class DbContextHelper
     {
 
+        private static bool IsMySqlConnection(DatabaseFacade database)
+        {
+            return database.ProviderName.Contains("MySql");
+        }
+
         public static Task<int> DeleteAsync<T>(this IQueryable<T> query)
             where T : class
         {
@@ -103,20 +108,19 @@ namespace EF.Core.Bulk
                 var schema = entityType.Relational().Schema;
                 var tableName = entityType.Relational().TableName;
 
-                var sql = $"UPDATE T1 SET ";
-
-                sql += string.Join(", ",
+                string setVariables = string.Join(", ",
                     queryInfo.Sql.Projection.OfType<AliasExpression>()
-                    .Where(  x => !(x.Expression is ColumnExpression ce && ce.Property.IsKey()))
+                    .Where(x => !(x.Expression is ColumnExpression ce && ce.Property.IsKey()))
                     .Select(x => $"T1.{x.Alias} = T2.{x.Alias}"));
 
                 string pkeys = "";
-
                 pkeys = string.Join(" AND ", keys.Select(p => $"T1.{p.Name} = T2.{p.Name}"));
 
-                // string w = queryInfo.Sql.Predicate.ToString();
+                var sql = IsMySqlConnection(context.Database)
+                    ? $"UPDATE {tableName} as T1, ({queryInfo.Command.CommandText}) AS T2 SET {setVariables} WHERE {pkeys}"
+                    : $"UPDATE T1 SET {setVariables} FROM {tableName} as T1 INNER JOIN ({queryInfo.Command.CommandText}) AS T2 ON {pkeys}";
 
-                sql += $" FROM {tableName} as T1 INNER JOIN ({queryInfo.Command.CommandText}) AS T2 ON {pkeys}";
+
                 sqlGenerated = sql;
                 sqlGenerated += "\r\n";
                 sqlGenerated += string.Join(",", queryInfo.ParameterValues.ParameterValues.Select(x => x.Key));
