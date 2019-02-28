@@ -13,6 +13,8 @@ Useful Dependency Injection Extensions
 CSVArrayModel Provider
 Useful Cache Extensions</Description>
     <PackageProjectUrl>https://github.com/neurospeech/asp-net-core-extensions</PackageProjectUrl>
+    <DebugSymbols>true</DebugSymbols>
+    <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
   </PropertyGroup>
 
   <ItemGroup>

@@ -13,6 +13,8 @@
     <RepositoryUrl>https://github.com/neurospeech/ef-core-bulk</RepositoryUrl>
     <Copyright>2018, NeuroSpeech Technologies Pvt Ltd</Copyright>
     <Description>EF Core bulk operations - INSERT SELECT, UPDATE SELECT , DELETE SELECT</Description>
+    <DebugSymbols>true</DebugSymbols>
+    <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

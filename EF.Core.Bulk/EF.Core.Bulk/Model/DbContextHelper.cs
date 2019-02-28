@@ -149,7 +149,7 @@ namespace EF.Core.Bulk
                         }
                         if (isMySQL.Value)
                         {
-                            cp.ParameterName = $"p:{p.Key}";
+                            cp.ParameterName = $":p{p.Key}";
                         }
                         else
                         {
