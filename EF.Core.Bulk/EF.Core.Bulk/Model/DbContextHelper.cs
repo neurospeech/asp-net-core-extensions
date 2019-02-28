@@ -112,12 +112,14 @@ namespace EF.Core.Bulk
 
                 string pkeys = "";
 
-                pkeys = string.Join(" AND ", keys.Select(p => $"T1.[{p.Name}] = T2.[{p.Name}]"));
+                pkeys = string.Join(" AND ", keys.Select(p => $"T1.{p.Name} = T2.{p.Name}"));
 
                 // string w = queryInfo.Sql.Predicate.ToString();
 
-                sql += $" FROM [{tableName}] as T1 INNER JOIN ({queryInfo.Command.CommandText}) AS T2 ON {pkeys}";
+                sql += $" FROM {tableName} as T1 INNER JOIN ({queryInfo.Command.CommandText}) AS T2 ON {pkeys}";
                 sqlGenerated = sql;
+                sqlGenerated += "\r\n";
+                sqlGenerated += string.Join(",", queryInfo.ParameterValues.ParameterValues.Select(x => x.Key));
                 return await ExecuteAsync(context, queryInfo, sql);
 
             }
