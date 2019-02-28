@@ -136,13 +136,25 @@ namespace EF.Core.Bulk
             try
             {
                 await context.Database.OpenConnectionAsync();
+                bool? isMySQL = null;
                 using (var cmd = db.CreateCommand())
                 {
                     cmd.CommandText = sql;
                     foreach (var p in queryInfo.ParameterValues.ParameterValues)
                     {
                         var cp = cmd.CreateParameter();
-                        cp.ParameterName = p.Key;
+                        if (isMySQL == null)
+                        {
+                            isMySQL = sql.Contains($":p{p.Key}");
+                        }
+                        if (isMySQL.Value)
+                        {
+                            cp.ParameterName = $"p:{p.Key}";
+                        }
+                        else
+                        {
+                            cp.ParameterName = p.Key;
+                        }
                         cp.Value = p.Value;
                         cmd.Parameters.Add(cp);
                     }
