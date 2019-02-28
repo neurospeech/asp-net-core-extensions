@@ -41,7 +41,7 @@ namespace EF.Core.Bulk
             where T:class
         {
 
-            if (!context.Database.IsSqlServer()) {
+            if (context.Database.IsInMemory()) {
 
                 var list = await query.ToListAsync();
                 context.Set<T>().RemoveRange(list);
@@ -166,7 +166,7 @@ namespace EF.Core.Bulk
 
             try
             {
-                if (!context.Database.IsSqlServer())
+                if (context.Database.IsInMemory())
                 {
                     var list = await query.ToListAsync();
                     context.Set<T>().AddRange(list);
