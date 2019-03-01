@@ -134,8 +134,10 @@ namespace RetroCoreFit
 
             if (BaseUrl != null)
             {
-                Uri uri = new Uri(BaseUrl, path);
-                path = uri.ToString();
+                if (!(path.StartsWith("https://") && path.StartsWith("http://"))) {
+                    Uri uri = new Uri(BaseUrl, path);
+                    path = uri.ToString();
+                }
             }
 
             HttpRequestMessage request = new HttpRequestMessage(method, path);

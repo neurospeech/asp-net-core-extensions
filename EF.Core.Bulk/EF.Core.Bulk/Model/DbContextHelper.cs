@@ -140,18 +140,14 @@ namespace EF.Core.Bulk
             try
             {
                 await context.Database.OpenConnectionAsync();
-                bool? isMySQL = null;
+                bool isMySQL = IsMySqlConnection(context.Database);
                 using (var cmd = db.CreateCommand())
                 {
                     cmd.CommandText = sql;
                     foreach (var p in queryInfo.ParameterValues.ParameterValues)
                     {
                         var cp = cmd.CreateParameter();
-                        if (isMySQL == null)
-                        {
-                            isMySQL = sql.Contains($":p{p.Key}");
-                        }
-                        if (isMySQL.Value)
+                        if (isMySQL)
                         {
                             cp.ParameterName = $":p{p.Key}";
                         }
