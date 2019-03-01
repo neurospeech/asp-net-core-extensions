@@ -48,13 +48,13 @@ namespace RetroCoreFit
                 throw new ArgumentException($"ServiceType must derive from class {nameof(BaseService)}");
 
             assemblyBuilder = assemblyBuilder ?? AssemblyBuilder.DefineDynamicAssembly(
-                new System.Reflection.AssemblyName("RetroCoreFit2"), AssemblyBuilderAccess.RunAndCollect);
+                new System.Reflection.AssemblyName($"RetroCoreFit2_{DateTime.UtcNow.Ticks}"), AssemblyBuilderAccess.RunAndCollect);
             moduleBuilder = moduleBuilder ?? assemblyBuilder.DefineDynamicModule("RetroCoreFit2");
 
             Dictionary<string, RestCall> methods = new Dictionary<string, RestCall>();
 
             TypeBuilder typeBuilder = moduleBuilder.DefineType(
-                "A._" + type.Name, 
+                $"A._{type.Name}_{DateTime.UtcNow.Ticks}", 
                 System.Reflection.TypeAttributes.Public | TypeAttributes.Class);
 
             typeBuilder.SetParent(serviceType);
