@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -183,6 +184,16 @@ namespace RetroCoreFit
                 }
 
                 string text = await response.Content.ReadAsStringAsync();
+
+                if (returnType == typeof(JObject))
+                {
+                    return (T)(object)JObject.Parse(text);
+                }
+
+                if (returnType == typeof(JArray))
+                {
+                    return (T)(object)JArray.Parse(text);
+                }
 
                 return DecodeResult<T>(text);
             }

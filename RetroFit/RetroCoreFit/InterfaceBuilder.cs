@@ -32,7 +32,10 @@ namespace RetroCoreFit
             serviceInterface.client = client ?? new HttpClient();
             serviceInterface.interfaceType = type;
             services[type] = serviceInterface;
-            serviceInterface.BaseUrl = baseUri;
+            if (baseUri != null)
+            {
+                serviceInterface.BaseUrl = baseUri;
+            }
             return serviceInterface as T;
         }
 
