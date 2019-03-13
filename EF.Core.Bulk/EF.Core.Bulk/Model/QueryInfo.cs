@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Storage;
 using System;
 using System.Linq;
 
-namespace EF.Core.Bulk
+namespace EFCoreBulk
 {
     public class QueryInfo
     {

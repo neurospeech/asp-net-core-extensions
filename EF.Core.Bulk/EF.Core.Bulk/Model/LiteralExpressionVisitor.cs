@@ -4,7 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 
-namespace EF.Core.Bulk
+namespace EFCoreBulk
 {
     internal class LiteralExpressionVisitor : ExpressionVisitor
     {

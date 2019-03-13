@@ -14,7 +14,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading.Tasks;
 
-namespace EF.Core.Bulk
+namespace EFCoreBulk
 {
     public static class DbContextHelper
     {

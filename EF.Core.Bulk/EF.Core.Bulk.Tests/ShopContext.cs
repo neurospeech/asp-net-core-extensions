@@ -18,7 +18,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EF.Core.Bulk.Model
+namespace EFCoreBulk.Model
 {
     public class ShopContext : DbContext
     {

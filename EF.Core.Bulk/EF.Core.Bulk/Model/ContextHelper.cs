@@ -6,7 +6,7 @@ using System;
 using System.Linq;
 using System.Reflection;
 
-namespace EF.Core.Bulk
+namespace EFCoreBulk
 {
     public static class ContextHelper
     {

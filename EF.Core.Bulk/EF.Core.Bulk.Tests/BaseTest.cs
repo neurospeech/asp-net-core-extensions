@@ -1,4 +1,4 @@
-﻿using EF.Core.Bulk.Model;
+﻿using EFCoreBulk.Model;
 using Microsoft.EntityFrameworkCore;
 using NeuroSpeech.EFCore.Mock;
 using System;
@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Text;
 using Xunit.Abstractions;
 
-namespace EF.Core.Bulk.Tests
+namespace EFCoreBulk.Tests
 {
     // Assuming you have `AppDbContext` as your EF DbContext in side your actual application project
     // For test purposes, you will have to use AppDbTestContext 
