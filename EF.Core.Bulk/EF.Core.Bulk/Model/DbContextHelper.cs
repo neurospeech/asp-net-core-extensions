@@ -123,6 +123,8 @@ namespace EFCoreBulk
 
                 sqlGenerated = sql;
                 sqlGenerated += "\r\n";
+                sqlGenerated += queryInfo.Command.CommandText;
+                sqlGenerated += "\r\n";
                 sqlGenerated += string.Join(",", queryInfo.ParameterValues.ParameterValues.Select(x => x.Key));
                 return await ExecuteAsync(context, queryInfo, sql);
 
