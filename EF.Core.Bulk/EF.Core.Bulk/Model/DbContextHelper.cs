@@ -123,8 +123,8 @@ namespace EFCoreBulk
 
                 sqlGenerated = sql;
                 sqlGenerated += "\r\n";
-                sqlGenerated += queryInfo.Command.CommandText;
-                sqlGenerated += "\r\n";
+                //sqlGenerated += queryInfo.Command.CommandText;
+                //sqlGenerated += "\r\n";
                 sqlGenerated += string.Join(",", queryInfo.ParameterValues.ParameterValues.Select(x => x.Key));
                 return await ExecuteAsync(context, queryInfo, sql);
 
@@ -250,6 +250,9 @@ namespace EFCoreBulk
                 var firstExp = sql.Projection.FirstOrDefault() as AliasExpression;
 
                 var existing = new List<Expression>(sql.Projection);
+
+                var schema = entityType.Relational().Schema;
+                var tableName = entityType.Relational().TableName;
 
                 foreach (var key in entityType.GetKeys().SelectMany(x=>x.Properties)) {
                     if (sql.Projection.OfType<AliasExpression>().Any(e => e.Alias == key.Name))

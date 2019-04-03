@@ -31,6 +31,23 @@ namespace EFCoreBulk.Tests
         }
 
         [Fact]
+        public async Task BulkUpdate3()
+        {
+            using (var db = this.CreateContext())
+            {
+                await db.ProductAccounts
+                    .Where(x => x.Account.Archived != false)
+                    .Select(x => x.Product)
+                    .Select(x => new Product
+                    {
+                        Archived = true
+                    })
+                    .UpdateAsync();
+            }
+        }
+
+
+        [Fact]
         public async Task BulkUpdateDate()
         {
             using (var db = this.CreateContext())

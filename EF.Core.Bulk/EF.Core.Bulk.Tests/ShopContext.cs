@@ -68,6 +68,9 @@ namespace EFCoreBulk.Model
         [InverseProperty(nameof(ProductAccount.Product))]
         public ICollection<ProductAccount> ProductAccounts { get; set; }
 
+        [InverseProperty(nameof(Email.Product))]
+        public ICollection<Email> Emails { get; set; }
+
     }
 
     [Table("ProductAccounts")]
@@ -96,5 +99,43 @@ namespace EFCoreBulk.Model
 
         [InverseProperty(nameof(ProductAccount.Account))]
         public ICollection<ProductAccount> ProductAccounts { get; set; }
+    }
+
+    [Table("Emails")]
+    public class Email
+    {
+
+        [Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public long EmailID { get; set; }
+
+        public string Subject { get; set; }
+
+        public long? ProductID { get; set; }
+
+        [ForeignKey(nameof(ProductID))]
+        [InverseProperty(nameof(Model.Product.Emails))]
+        public Product Product { get; set; }
+
+        [InverseProperty(nameof(EmailRecipient.Email))]
+        public List<EmailRecipient> EmailRecipients { get; set; }
+
+    }
+
+    [Table("EmailRecipients")]
+    public class EmailRecipient
+    {
+        [Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public long EmailRecipientID { get; set; }
+
+        public long EmailID { get; set; }
+
+        public DateTime? TimeRead { get; set; }
+
+        [ForeignKey(nameof(EmailID))]
+        [InverseProperty(nameof(Model.Email.EmailRecipients))]
+        public Email Email { get; set; }
+
+
+
     }
 }
