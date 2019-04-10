@@ -35,6 +35,27 @@ namespace NeuroSpeech
         }
 
         /// <summary>
+        /// Reads embedded string resource from given assembly
+        /// </summary>
+        /// <param name="assembly"></param>
+        /// <param name="name"></param>
+        /// <param name="encoding"></param>
+        /// <returns></returns>
+        public static string GetStringResource(
+            this Assembly assembly,
+            string name,
+            Encoding encoding = null)
+        {
+            using (var rs = assembly.GetManifestResourceStream(name))
+            {
+                using (var reader = new StreamReader(rs, encoding ?? Encoding.UTF8))
+                {
+                    return reader.ReadToEnd();
+                }
+            }
+        }
+
+        /// <summary>
         /// Registers given assembly types for DI
         /// </summary>
         /// <param name="services"></param>
