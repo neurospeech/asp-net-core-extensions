@@ -60,11 +60,12 @@ namespace NeuroSpeech.Tasks
                 {
                     continue;
                 }
-                value = value.TrimStart('^');
-                if (!Char.IsNumber(value[0]))
-                {
-                    continue;
-                }
+
+                value = new string(value
+                    .SkipWhile(x => !Char.IsDigit(x))
+                    .TakeWhile(x => x == '.' || Char.IsDigit(x))
+                    .ToArray());
+
                 string pn = $"{key.Name}@{value}";
                 var cp = new PackagePath(package.Options, pn.ParseNPMPath(), true);
 
