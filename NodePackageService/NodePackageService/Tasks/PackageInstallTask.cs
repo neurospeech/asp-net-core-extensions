@@ -66,6 +66,11 @@ namespace NeuroSpeech.Tasks
                     .TakeWhile(x => x == '.' || Char.IsDigit(x))
                     .ToArray());
 
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    continue;
+                }
+
                 string pn = $"{key.Name}@{value}";
                 var cp = new PackagePath(package.Options, pn.ParseNPMPath(), true);
 
