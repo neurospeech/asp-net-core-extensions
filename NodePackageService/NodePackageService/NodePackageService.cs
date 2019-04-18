@@ -76,14 +76,18 @@ namespace NeuroSpeech
         public async Task InstallAsync(PackagePath packagePath)
         {
 
+
             if (this.Options.UseFileLock)
             {
-                using(var fl = await FileLock.AcquireAsync(packagePath.TagFolder + "_lock"))
+                using (var fl = await FileLock.AcquireAsync(
+                    packagePath.TagFolder + "_lock",
+                    TimeSpan.FromMinutes(15)))
                 {
-                    if (!Directory.Exists(packagePath.TagFolder))
+                    if (Directory.Exists(packagePath.TagFolder))
                     {
-                        await DownloadAsync(packagePath);
+                        return;
                     }
+                    await DownloadAsync(packagePath);
                     return;
                 }
             }
