@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Net.Http.Headers;
 using System;
 
 namespace NeuroSpeech
@@ -14,46 +15,75 @@ namespace NeuroSpeech
             services.AddSingleton(sp => new NodePackageService(sp, options));
         }
 
-        public static IApplicationBuilder UseUIViews(this IApplicationBuilder app, string route = "uiv/")
+        public static IApplicationBuilder UseNpmDistribution(
+            this IApplicationBuilder app,
+            string route = "js-pkg/",
+            bool crossBrowser = false)
         {
-
-            app.Use(async (context, next) =>
+            app.Map(route, a =>
             {
-
-                HttpRequest request = context.Request;
-                if (!request.Method.EqualsIgnoreCase("GET"))
+                a.Use(async (context, next) =>
                 {
-                    await next();
-                    return;
-                }
 
-                PathString path = request.Path;
-                if (!path.HasValue || !path.Value.StartsWithIgnoreCase(route))
-                {
-                    await next();
-                    return;
-                }
+                    HttpRequest request = context.Request;
+                    if (!request.Method.EqualsIgnoreCase("GET"))
+                    {
+                        await next();
+                        return;
+                    }
 
-                IHeaderDictionary headers = context.Response.Headers;
-                headers.Add("access-control-allow-origin", "*");
-                headers.Add("access-control-expose-headers", "*");
-                headers.Add("access-control-allow-methods", "*");
-                headers.Add("access-control-allow-headers", "*");
-                headers.Add("access-control-max-age", TimeSpan.FromDays(30).TotalSeconds.ToString());
+                    PathString path = request.Path;
 
-                var nodeServer = context.RequestServices.GetService<NodePackageService>();
+                    IHeaderDictionary headers = context.Response.Headers;
+                    if (crossBrowser)
+                    {
+                        headers.Add("access-control-allow-origin", "*");
+                        headers.Add("access-control-expose-headers", "*");
+                        headers.Add("access-control-allow-methods", "*");
+                        headers.Add("access-control-allow-headers", "*");
+                        headers.Add("access-control-max-age", TimeSpan.FromDays(30).TotalSeconds.ToString());
+                    }
 
-                string sp = path.Value.Substring(4);
+                    var nodeServer = context.RequestServices.GetService<NodePackageService>();
 
-                PackagePath packagePath = nodeServer.ParsePath(sp);
+                    string sp = path.Value.Substring(route.Length + 1);
 
-                await nodeServer.DownloadAsync(packagePath);
-                
-                // get file content...
+                    var packageSegment = sp.ParseNPMPath();
+
+                    var package = await nodeServer.GetInstalledPackageAsync(sp);
+
+                    string folder = package.Path.TagFolder;
+
+                    string filePath = $"{folder}\\{packageSegment.Path}".Replace("/","\\");
+
+                    string host = context.Request.Query["host"];
+
+                    string contentType = MimeKit.MimeTypes.GetMimeType(filePath);
+
+                    var ct = MediaTypeHeaderValue.Parse(contentType);
+                    ct.Encoding = System.Text.Encoding.UTF8;
+                    context.Response.GetTypedHeaders().ContentType = ct;
+
+                    await context.Response.SendFileAsync(filePath, context.RequestAborted);
+
+                    if (!string.IsNullOrWhiteSpace(host))
+                    {
+                        string lang = context.Request.Query["lang"];
+                        if (string.IsNullOrWhiteSpace(lang))
+                        {
+                            lang = "en-US";
+                        }
+                        string designMode = context.Request.Query["designMode"];
+                        bool design = designMode.EqualsIgnoreCase("true");
+                        var startScript = $"UMD.lang = \"{lang}\";\r\n" +
+                            $"UMD.hostView(\"{host}\",\"{packageSegment.Package}/{path}\", {(design? "true" : "false")})";
+                        await context.Response.WriteAsync(startScript);
+                    }
+                });
+
             });
 
             return app;
         }
-
     }
 }
