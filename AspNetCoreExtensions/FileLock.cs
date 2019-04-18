@@ -41,7 +41,7 @@ namespace AspNetCoreExtensions
                 {
                     var fs = new FileStream(filePath,
                         FileMode.OpenOrCreate,
-                        FileAccess.ReadWrite, FileShare.ReadWrite);
+                        FileAccess.ReadWrite, FileShare.None);
                     fs.Seek(0, SeekOrigin.Begin);
                     await fs.WriteAsync(new byte[] { 1 });
                     return new FileLock(lockFile, fs);
