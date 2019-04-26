@@ -146,6 +146,12 @@ namespace EFCoreBulk
                 using (var cmd = db.CreateCommand())
                 {
                     cmd.CommandText = sql;
+                    var t = context.Database.CurrentTransaction;
+                    if (t != null)
+                    {
+                        cmd.Transaction = t.GetDbTransaction();
+                    }
+
                     foreach (var p in queryInfo.ParameterValues.ParameterValues)
                     {
                         // since array and list are expanded inline, ignore them
