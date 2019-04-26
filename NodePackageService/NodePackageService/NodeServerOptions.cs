@@ -39,5 +39,10 @@ namespace NeuroSpeech
         /// Time to live, after which NodeServer will dispose
         /// </summary>
         public TimeSpan TTL { get; set; } = TimeSpan.FromHours(1);
+
+        /// <summary>
+        /// Useful for single npm cache folder, default is true
+        /// </summary>
+        public bool UseFileLock { get; set; } = true;
     }
 }

@@ -11,6 +11,8 @@ using System.IO;
 using NeuroSpeech.Tasks;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using AspNetCoreExtensions;
+using NeuroSpeech.Internal;
 
 namespace NeuroSpeech
 {
@@ -18,8 +20,8 @@ namespace NeuroSpeech
     {
 
         readonly IServiceProvider services;
-        readonly IMemoryCache cache;
         readonly IEnumerable<PackagePath> privatePackages;
+        readonly AtomicCache<NodePackage> cache;
         public NodePackageServiceOptions Options { get; }
 
         public NodePackageService(
@@ -32,7 +34,7 @@ namespace NeuroSpeech
             this.privatePackages = options.PrivatePackages.Select( x => {
                 return new PackagePath(options, x.ParseNPMPath(), true);
             } );
-            this.cache = services.GetService<IMemoryCache>();
+            this.cache = new AtomicCache<NodePackage>();
             this.services = services;            
         }
 
@@ -73,6 +75,22 @@ namespace NeuroSpeech
 
         public async Task InstallAsync(PackagePath packagePath)
         {
+
+
+            if (this.Options.UseFileLock)
+            {
+                using (var fl = await FileLock.AcquireAsync(
+                    packagePath.TagFolder + "_lock",
+                    TimeSpan.FromMinutes(15)))
+                {
+                    if (Directory.Exists(packagePath.TagFolder))
+                    {
+                        return;
+                    }
+                    await DownloadAsync(packagePath);
+                    return;
+                }
+            }
 
             bool wait = false;
 
@@ -115,9 +133,9 @@ namespace NeuroSpeech
         public Task<NodePackage> GetInstalledPackageAsync(string path)
         {
             var pp = this.ParsePath(path);
-            return cache.GetOrCreateAsync<NodePackage>(pp.Package + "@" + pp.Version, async entry => {
+            return cache.GetAsync(pp.Package + "@" + pp.Version, async entry => {
 
-                entry.SlidingExpiration = TimeSpan.FromHours(1);
+                entry.SlidingExpiration = this.Options.TTL;
 
                 await InstallAsync(pp);
 
@@ -141,7 +159,7 @@ namespace NeuroSpeech
 
                 var s = NodeServicesFactory.CreateNodeServices(options);
 
-                entry.RegisterPostEvictionCallback((x1, x2, x3, x4) => {
+                entry.EvictionCallbacks.Add((c) => {
                     try
                     {
                         s.Dispose();
