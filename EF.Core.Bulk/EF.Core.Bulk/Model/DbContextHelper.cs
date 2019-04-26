@@ -148,6 +148,12 @@ namespace EFCoreBulk
                     cmd.CommandText = sql;
                     foreach (var p in queryInfo.ParameterValues.ParameterValues)
                     {
+                        // since array and list are expanded inline
+                        // we should avoid it..
+                        if (!(p.Value is string) && p.Value is System.Collections.IEnumerable)
+                        {
+                            continue;
+                        }
                         var cp = cmd.CreateParameter();
                         if (isMySQL)
                         {

@@ -64,6 +64,17 @@ namespace EFCoreBulk.Tests
                     .UpdateAsync();
             }
         }
+
+        [Fact]
+        public async Task ContainsTest()
+        {
+            using (var db = this.CreateContext())
+            {
+                var list = new long[] { 1, 2, 3 };
+                await db.Products.Where(x => list.Contains(x.ProductID)).DeleteAsync();
+            }
+        }
+
         [Fact]
         public async Task BulkInsert()
         {
