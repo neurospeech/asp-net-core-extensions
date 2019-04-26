@@ -22,12 +22,15 @@ namespace NeuroSpeech
         readonly IServiceProvider services;
         readonly IEnumerable<PackagePath> privatePackages;
         readonly AtomicCache<NodePackage> cache;
+        readonly Func<IServiceProvider, PackagePathSegments, Task<string>> versionProvider;
         public NodePackageServiceOptions Options { get; }
 
         public NodePackageService(
             IServiceProvider services,
-            NodePackageServiceOptions options)
+            NodePackageServiceOptions options,
+            Func<IServiceProvider, PackagePathSegments, Task<string>> versionProvider = null)
         {
+            this.versionProvider = versionProvider;
             var reg = options.NPMRegistry.TrimEnd('/') + "/";
             this.Options = options;
             this.Options.NPMRegistry = reg;
@@ -57,6 +60,38 @@ namespace NeuroSpeech
             }
 
             return new PackagePath(this.Options, pps, existing != null);
+        }
+
+        protected virtual async Task<PackagePathSegments> ResolveVersion(PackagePathSegments pps)
+        {
+            var package = pps.Package;
+            var version = pps.Version;
+
+
+            // replace version... if it is empty
+            if (string.IsNullOrWhiteSpace(version))
+            {
+                // find from version provider..
+                if (versionProvider != null)
+                {
+                    version = await versionProvider(services, pps);
+                }
+                if (string.IsNullOrWhiteSpace(version))
+                {
+                    var existing = this.privatePackages.FirstOrDefault(x => x.Package == package);
+                    if (existing != null)
+                    {
+                        version = existing.Version;
+                    }
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(version))
+            {
+                pps.Version = version;
+            }
+
+            return pps;
         }
 
         public async Task DownloadAsync(PackagePath packagePath)
@@ -130,10 +165,12 @@ namespace NeuroSpeech
             }
         }
 
-        public Task<NodePackage> GetInstalledPackageAsync(string path)
+        public async Task<NodePackage> GetInstalledPackageAsync(string path)
         {
-            var pp = this.ParsePath(path);
-            return cache.GetAsync(pp.Package + "@" + pp.Version, async entry => {
+            PackagePathSegments pps = path;
+            pps = await this.ResolveVersion(pps);
+            var pp = new PackagePath(this.Options, pps, true);
+            return await cache.GetAsync(pp.Package + "@" + pp.Version, async entry => {
 
                 entry.SlidingExpiration = this.Options.TTL;
 

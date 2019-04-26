@@ -3,16 +3,34 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Net.Http.Headers;
 using System;
+using System.Threading.Tasks;
 
 namespace NeuroSpeech
 {
+    public interface IVersionProvider
+    {
+
+        Task<string> GetVersionAsync(PackagePathSegments path);
+
+    }
+
     public static class NodePackageServiceExtensions
     {
 
         public static void AddNodePackageService(this IServiceCollection services,
             NodePackageServiceOptions options)
         {
-            services.AddSingleton(sp => new NodePackageService(sp, options));
+            services.AddSingleton(sp => new NodePackageService(sp, options, null));
+        }
+
+        public static void AddNodePackageService<T>(this IServiceCollection services,
+            NodePackageServiceOptions options)
+            where T: IVersionProvider
+        {
+            services.AddSingleton(sp => new NodePackageService(sp, options, (s, path) => {
+                var st = s.GetRequiredService<T>();
+                return st.GetVersionAsync(path);
+            }));
         }
 
         public static IApplicationBuilder UseNpmDistribution(
