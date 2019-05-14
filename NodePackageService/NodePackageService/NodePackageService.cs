@@ -182,6 +182,8 @@ namespace NeuroSpeech
                     NodeInstanceOutputLogger = services.GetService<ILogger<NodePackageService>>()
                 };
 
+                options.ProjectPath = pp.TagFolder;
+
                 if (this.Options.EnvironmentVariables != null)
                 {
                     if (options.EnvironmentVariables == null)
