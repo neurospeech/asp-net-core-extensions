@@ -162,7 +162,7 @@ namespace NeuroSpeech
                 scoped = true;
                 input = input.Substring(1);
             }
-            input = input.Split(separator)[0];
+            input = input.Split(separator.ToCharArray())[0];
             if (scoped)
             {
                 input = "@" + input;

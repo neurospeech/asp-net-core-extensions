@@ -16,7 +16,7 @@ namespace NeuroSpeech
 
         // private readonly string npmUrlTemplate;
 
-        public string ID => Package.Split("/").Last();
+        public string ID => Package.Split('/').Last();
 
         public string Tag => $"v{Version}";
 

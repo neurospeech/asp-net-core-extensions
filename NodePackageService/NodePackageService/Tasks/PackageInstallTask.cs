@@ -35,12 +35,23 @@ namespace NeuroSpeech.Tasks
 
         }
 
+        private async Task<string> ReadAllTextAsync(string path)
+        {
+            using(var fs = System.IO.File.OpenRead(path))
+            {
+                using(var sr = new StreamReader(fs))
+                {
+                    return await sr.ReadToEndAsync();
+                }
+            }
+        }
+
         private async Task InstallAsync(PackagePath package, string destination)
         {
             await DownloadAsync(package, destination);
-
+            
             // read config..
-            var packageConfig = await File.ReadAllTextAsync(destination + "\\package.json");
+            var packageConfig = await ReadAllTextAsync(destination + "\\package.json");
             var config = JObject.Parse(packageConfig);
 
             if(!config.ContainsKey("dependencies"))

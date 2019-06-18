@@ -60,7 +60,7 @@ namespace NeuroSpeech
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(Package, Version, Path);
+            return Package.GetHashCode();
         }
 
         public static bool operator == (PackagePathSegments a, PackagePathSegments b)
