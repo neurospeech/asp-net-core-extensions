@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.2</TargetFramework>
+    <TargetFramework>netstandard2.0</TargetFramework>
     <PackageId>NeuroSpeech.RetroCoreFit</PackageId>
     <Authors>Akash Kava</Authors>
     <Company>NeuroSpeech Technologies Pvt Ltd</Company>
@@ -16,7 +16,7 @@
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
-    <PackageReference Include="NeuroSpeech.AspNetCoreExtensions" Version="1.2.41" />
+    <PackageReference Include="System.Reflection.Emit" Version="4.3.0"/>
   </ItemGroup>
 
 </Project>

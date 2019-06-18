@@ -156,7 +156,7 @@ namespace RetroCoreFit
 
             }
 
-            BaseService si = Activator.CreateInstance(typeBuilder.CreateType()) as BaseService;
+            BaseService si = Activator.CreateInstance(typeBuilder.CreateTypeInfo()) as BaseService;
             si.Methods = methods;
             si.Headers = headerList.ToArray();
             return si;

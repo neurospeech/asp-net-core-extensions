@@ -168,4 +168,12 @@ namespace RetroCoreFit
         public string FileName { get; set; }
     }
 
+    [AttributeUsage(AttributeTargets.Parameter)]
+    public sealed class FormAttribute : ParamAttribute
+    {
+        public FormAttribute(string name) : base(name)
+        {
+
+        }
+    }
 }

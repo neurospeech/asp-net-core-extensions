@@ -48,6 +48,7 @@ namespace RetroCoreFit
 
             Dictionary<string, string> headers = null;
             Dictionary<string, string> cookies = null;
+            Dictionary<string, string> form = null;
 
             if (Headers != null && Headers.Any()) {
                 headers = headers ?? new Dictionary<string, string>();
@@ -84,12 +85,45 @@ namespace RetroCoreFit
 
                     case HeaderAttribute h:
                         headers = headers ?? new Dictionary<string, string>();
-                        headers[h.Name] = rp.Value.ToString();
+                        if (h.Name != null)
+                        {
+                            headers[h.Name] = rp.Value.ToString();
+                        }
+                        else if (rp.Value is KeyValuePair<string, string> kvp)
+                        {
+                            headers[kvp.Key] = kvp.Value;
+                        }
+                        else if (rp.Value is IEnumerable<KeyValuePair<string, string>> kvps)
+                        {
+                            foreach (var item in kvps)
+                            {
+                                headers.Add(item.Key, item.Value);
+                            }
+                        }
                         break;
 
                     case CookieAttribute c:
                         cookies = cookies ?? new Dictionary<string, string>();
-                        cookies[c.Name] = rp.Value.ToString();
+                        if (c.Name != null)
+                        {
+                            cookies[c.Name] = rp.Value.ToString();
+                        }
+                        else if (rp.Value is KeyValuePair<string, string> kvp)
+                        {
+                            cookies[kvp.Key] = kvp.Value;
+                        }
+                        else if (rp.Value is IEnumerable<KeyValuePair<string, string>> kvps)
+                        {
+                            foreach (var item in kvps)
+                            {
+                                cookies.Add(item.Key, item.Value);
+                            }
+                        }
+                        break;
+
+                    case FormAttribute f:
+                        form = form ?? new Dictionary<string, string>();
+                        form[f.Name] = rp.Value.ToString();
                         break;
 
                     case MultipartAttribute ma:
@@ -144,6 +178,16 @@ namespace RetroCoreFit
             HttpRequestMessage request = new HttpRequestMessage(method, path);
 
             if (content != null) {
+                request.Content = content;
+            }
+
+            if (form != null)
+            {
+                content = new FormUrlEncodedContent(form);
+            }
+
+            if (content != null)
+            {
                 request.Content = content;
             }
 
