@@ -4,31 +4,31 @@
     <TargetFramework>netstandard2.0</TargetFramework>
     <ApplicationIcon />
     <OutputType>Library</OutputType>
-    <PackageId>NeuroSpeech.NodePackageService</PackageId>
+    <PackageId>NeuroSpeech.NodePackageInstaller</PackageId>
     <Version>1.0.1</Version>
     <StartupObject />
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Authors>Akash Kava</Authors>
     <Company>NeuroSpeech Technologies Pvt Ltd</Company>
-    <Product>NeuroSpeech NodePackageService</Product>
+    <Product>NeuroSpeech NodePackageInstaller</Product>
     <DebugSymbols>true</DebugSymbols>
     <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
+    <RootNamespace>NeuroSpeech</RootNamespace>
   </PropertyGroup>
-  
+
   <ItemGroup>
     <PackageReference Include="AngleSharp" Version="0.9.11" />
     <PackageReference Include="MimeKit" Version="2.1.4" />
-    <PackageReference Include="Microsoft.AspNetCore.NodeServices" Version="2.2.0" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
     <PackageReference Include="SharpZipLib" Version="1.1.0" />
     <PackageReference Include="System.Diagnostics.Process" Version="4.3.0" />
     <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="2.2.0" />
   </ItemGroup>
-  
+
   <ItemGroup>
     <ProjectReference Include="..\..\StringExtensions\StringExtensions.csproj" />
-    <ProjectReference Include="..\NeuroSpeech.NodePackageInstaller\NeuroSpeech.NodePackageInstaller.csproj" />
   </ItemGroup>
-  
+
+
 
 </Project>

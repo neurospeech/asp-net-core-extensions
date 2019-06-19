@@ -23,11 +23,11 @@ namespace NeuroSpeech
         public string TagFolder
                 => $"{Options.TempFolder}\\npm\\{Package}\\{Tag}";
     
-        public NodePackageServiceOptions Options { get; }
+        public PackageInstallerOptions Options { get; }
 
 
         public PackagePath(
-            NodePackageServiceOptions options,
+            PackageInstallerOptions options,
             PackagePathSegments p,
             bool isPrivate)
         {
