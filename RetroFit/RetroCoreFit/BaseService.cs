@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Reflection;
 using System.Text;
@@ -11,6 +12,19 @@ using System.Threading.Tasks;
 
 namespace RetroCoreFit
 {
+    public class ApiException: Exception
+    {
+        public HttpStatusCode StatusCode { get; }
+        public JToken Details { get; }
+
+        public ApiException(HttpStatusCode statusCode, string message, JToken details)
+            : base(message)
+        {
+            this.StatusCode = statusCode;
+            this.Details = details;
+        }
+    }
+
     public class BaseService {
 
         public Uri BaseUrl { get; set; }
@@ -243,7 +257,25 @@ namespace RetroCoreFit
             }
 
             string error = await response.Content.ReadAsStringAsync();
+            if(response.Content.Headers.ContentType?.ToString()?.Contains("/json") ?? false)
+            {
+                var e = JToken.Parse(error);
+                var message = "Application Error";
+                if (e is JObject)
+                {
+                    var msg = e.OfType<JProperty>().FirstOrDefault(x =>
+                        x.Name.Equals("exceptionMessage", StringComparison.OrdinalIgnoreCase)
+                        || x.Name.Equals("message", StringComparison.OrdinalIgnoreCase)
+                        || x.Name.Equals("error", StringComparison.OrdinalIgnoreCase)
+                        || x.Name.Equals("errors", StringComparison.OrdinalIgnoreCase));
 
+                    if (!(msg.Value is JArray))
+                    {
+                        message = msg.Value.ToString();
+                    }
+                }
+                throw new ApiException(response.StatusCode, message, e);
+            }
             throw new HttpRequestException(path + "\r\n" + error);
         }
 
