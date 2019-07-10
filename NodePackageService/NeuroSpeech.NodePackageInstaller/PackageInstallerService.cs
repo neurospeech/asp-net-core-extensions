@@ -83,7 +83,7 @@ namespace NeuroSpeech
         readonly IEnumerable<PackagePath> privatePackages;
         readonly AtomicCache<NodeInstalledPackage> cache;
         readonly Func<IServiceProvider, PackagePathSegments, Task<string>> versionProvider;
-        public virtual PackageInstallerOptions Options { get; }
+        public PackageInstallerOptions Options { get; }
 
         public PackageInstallerService(
             IServiceProvider services,

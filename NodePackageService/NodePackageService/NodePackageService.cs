@@ -22,10 +22,6 @@ namespace NeuroSpeech
 
         private NodePackageServiceOptions _Options;
 
-        public override PackageInstallerOptions Options => this._Options;
-
-
-
         public NodePackageService(
             IServiceProvider services,
             NodePackageServiceOptions options,
