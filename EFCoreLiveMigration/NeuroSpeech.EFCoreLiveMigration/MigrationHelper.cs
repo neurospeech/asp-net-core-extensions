@@ -31,7 +31,7 @@ namespace NeuroSpeech.EFCoreLiveMigration
 
         public void Migrate() {
 
-            context.Database.EnsureCreated();
+            context.Database.Migrate();
 
             foreach (var entity in context.Model.GetEntityTypes())
             {
