@@ -12,16 +12,46 @@ using System.Threading.Tasks;
 
 namespace RetroCoreFit
 {
-    public class ApiException: Exception
+    public class ApiException: HttpException
     {
-        public HttpStatusCode StatusCode { get; }
         public JToken Details { get; }
 
-        public ApiException(HttpStatusCode statusCode, string message, JToken details)
-            : base(message)
+        public ApiException(
+            string path,
+            HttpStatusCode statusCode, 
+            string message, 
+            JToken details)
+            : base(path, statusCode,message)
         {
-            this.StatusCode = statusCode;
             this.Details = details;
+        }
+
+        public override string ToString()
+        {
+            var error = $"Status: {StatusCode}, Error = {Message}\r\nUrl: {this.Path}\r\n{Details.ToString(Formatting.Indented)}\r\n{this.StackTrace}";
+            return error;
+        }
+    }
+
+    public class HttpException: Exception
+    {
+        public string Path { get; }
+
+        public HttpStatusCode StatusCode { get; }
+        public HttpException(
+            string path,
+            HttpStatusCode statusCode, 
+            string content)
+            : base(content)
+        {
+            this.Path = path;
+            this.StatusCode = statusCode;
+        }
+
+        public override string ToString()
+        {
+            var error = $"Status: {StatusCode}, Error = {Message}\r\nUrl: {this.Path}\r\n{this.StackTrace}";
+            return error;
         }
     }
 
@@ -274,9 +304,13 @@ namespace RetroCoreFit
                         message = msg.Value.ToString();
                     }
                 }
-                throw new ApiException(response.StatusCode, message, e);
+                throw new ApiException(
+                    path,
+                    response.StatusCode,
+                    message,
+                    e);
             }
-            throw new HttpRequestException(path + "\r\n" + error);
+            throw new HttpException(path, response.StatusCode, error);
         }
 
         protected virtual T DecodeResult<T>(string text)
