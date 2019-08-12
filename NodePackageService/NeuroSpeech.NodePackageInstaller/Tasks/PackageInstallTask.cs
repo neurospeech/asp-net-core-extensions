@@ -58,6 +58,12 @@ namespace NeuroSpeech.Tasks
             {
                 return;
             }
+            
+            // bundled dependencies must have all the dependencies
+            if (config.ContainsKey("bundledDependencies"))
+            {
+                return;
+            }
 
             var dep = config["dependencies"] as JObject;
             if (dep == null)
