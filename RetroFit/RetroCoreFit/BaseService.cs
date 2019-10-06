@@ -12,16 +12,16 @@ using System.Threading.Tasks;
 
 namespace RetroCoreFit
 {
-    public class ApiException: HttpException
+    public class ApiException : HttpException
     {
         public JToken Details { get; }
 
         public ApiException(
             string path,
-            HttpStatusCode statusCode, 
-            string message, 
+            HttpStatusCode statusCode,
+            string message,
             JToken details)
-            : base(path, statusCode,message)
+            : base(path, statusCode, message)
         {
             this.Details = details;
         }
@@ -33,14 +33,14 @@ namespace RetroCoreFit
         }
     }
 
-    public class HttpException: Exception
+    public class HttpException : Exception
     {
         public string Path { get; }
 
         public HttpStatusCode StatusCode { get; }
         public HttpException(
             string path,
-            HttpStatusCode statusCode, 
+            HttpStatusCode statusCode,
             string content)
             : base(content)
         {
@@ -53,6 +53,13 @@ namespace RetroCoreFit
             var error = $"Status: {StatusCode}, Error = {Message}\r\nUrl: {this.Path}\r\n{this.StackTrace}";
             return error;
         }
+    }
+
+    public class ApiResponse<T>
+    {
+        public Dictionary<string,string> Headers { get; set; }
+
+        public T Response { get; set; }
     }
 
     public class BaseService {
@@ -259,31 +266,25 @@ namespace RetroCoreFit
 
             if (response.IsSuccessStatusCode) {
 
-                if (returnType == typeof(byte[])) {
-                    return (T)(object) await response.Content.ReadAsByteArrayAsync();
-                }
-                if (returnType == typeof(Stream))
+
+                Type gt = returnType.GetGenericTypeDefinition();
+                if (gt != null && gt == typeof(ApiResponse<>))
                 {
-                    return (T)(object)await response.Content.ReadAsStreamAsync();
-                }
-                if (returnType == typeof(String))
-                {
-                    return (T)(object)await response.Content.ReadAsStringAsync();
+                    var r = await DecodeResultAsync(response.Content, gt.GetGenericArguments()[0]);
+                    var rv = (object)Activator.CreateInstance<T>();
+                    returnType.GetProperty("Response").SetValue(rv, r);
+                    var rvHeaders = new Dictionary<string, string>();
+                    foreach(var h in response.Headers )
+                    {
+                        rvHeaders[h.Key] = h.Value.ToString();
+                    }
+                    returnType.GetProperty("Headers").SetValue(rv, rvHeaders);
+
+                    return (T)(object)rv;
                 }
 
-                string text = await response.Content.ReadAsStringAsync();
+                return (T)( await DecodeResultAsync(response.Content, returnType));
 
-                if (returnType == typeof(JObject))
-                {
-                    return (T)(object)JObject.Parse(text);
-                }
-
-                if (returnType == typeof(JArray))
-                {
-                    return (T)(object)JArray.Parse(text);
-                }
-
-                return DecodeResult<T>(text);
             }
 
             string error = await response.Content.ReadAsStringAsync();
@@ -313,9 +314,33 @@ namespace RetroCoreFit
             throw new HttpException(path, response.StatusCode, error);
         }
 
-        protected virtual T DecodeResult<T>(string text)
+        protected virtual async Task<object> DecodeResultAsync(HttpContent content, Type returnType)
         {
-            return JsonConvert.DeserializeObject<T>(text);
+            if (returnType == typeof(byte[]))
+            {
+                return await content.ReadAsByteArrayAsync();
+            }
+            if (returnType == typeof(Stream))
+            {
+                return await content.ReadAsStreamAsync();
+            }
+            if (returnType == typeof(String))
+            {
+                return await content.ReadAsStringAsync();
+            }
+
+            string text = await content.ReadAsStringAsync();
+
+            if (returnType == typeof(JObject))
+            {
+                return JObject.Parse(text);
+            }
+
+            if (returnType == typeof(JArray))
+            {
+                return JArray.Parse(text);
+            }
+            return JsonConvert.DeserializeObject(text, returnType);
         }
 
         protected virtual HttpContent EncodePost(object value)
