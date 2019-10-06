@@ -55,11 +55,47 @@ namespace RetroCoreFit
         }
     }
 
-    public class ApiResponse<T>
+    public interface IApiResponse
     {
-        public Dictionary<string,string> Headers { get; set; }
+        void Initialize(HttpResponseMessage response, object model);
 
-        public T Response { get; set; }
+        Type GetModelType();
+    }
+
+    public class ApiResponse<T>: IApiResponse
+    {
+        public Dictionary<string,string> Headers { get; protected set; }
+
+        public T Model { get; protected set; }
+
+        public virtual void Initialize(HttpResponseMessage response, object model)
+        {
+
+            this.Headers = new Dictionary<string, string>();
+
+            var headerProperties = this.GetType().GetProperties().Select(x => new {
+                Property = x,
+                Header = x.GetCustomAttribute<HeaderAttribute>()
+            }).Where(x => x.Header != null)
+            .ToDictionary(x => x.Header.Name.ToLower(), x=> x.Property);
+
+            foreach(var k in response.Headers)
+            {
+                this.Headers[k.Key] = k.Value.ToString();
+                if(headerProperties.TryGetValue(k.Key.ToLower(), out var p))
+                {
+                    p.SetValue(this, k.Value.ToString());
+                }
+            }
+
+            this.Model= (T)model;
+        }
+
+        Type IApiResponse.GetModelType()
+        {
+            return typeof(T);
+        }
+
     }
 
     public class BaseService {
@@ -268,18 +304,12 @@ namespace RetroCoreFit
 
 
                 Type gt = returnType.GetGenericTypeDefinition();
-                if (gt != null && gt == typeof(ApiResponse<>))
+                if (gt.GetInterfaces().Contains(typeof(IApiResponse)))
                 {
-                    var r = await DecodeResultAsync(response.Content, gt.GetGenericArguments()[0]);
                     var rv = (object)Activator.CreateInstance<T>();
-                    returnType.GetProperty("Response").SetValue(rv, r);
-                    var rvHeaders = new Dictionary<string, string>();
-                    foreach(var h in response.Headers )
-                    {
-                        rvHeaders[h.Key] = h.Value.ToString();
-                    }
-                    returnType.GetProperty("Headers").SetValue(rv, rvHeaders);
-
+                    var irv = rv as IApiResponse;
+                    var r = await DecodeResultAsync(response.Content, irv.GetModelType());
+                    irv.Initialize(response, r);
                     return (T)(object)rv;
                 }
 
