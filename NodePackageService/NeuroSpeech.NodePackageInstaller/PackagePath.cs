@@ -22,7 +22,9 @@ namespace NeuroSpeech
 
         public string TagFolder
                 => $"{Options.TempFolder}\\npm\\{Package}\\{Tag}";
-    
+
+        internal string InstallFolder
+                => $"{Options.TempFolder}\\tmp-{}\\{Package}\\{Tag}";
         public PackageInstallerOptions Options { get; }
 
 

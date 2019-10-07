@@ -29,10 +29,21 @@ namespace NeuroSpeech.Tasks
         }
         public async Task RunAsync()
         {
+            var tempFolder = new DirectoryInfo($"{this.packagePath.Options.TempFolder}\\tmp\\{Guid.NewGuid()}");
+            
+            await InstallAsync(this.packagePath, tempFolder);
 
-            await InstallAsync(this.packagePath, this.packagePath.TagFolder);
+            var tagFolder = tempFolder.GetDirectories()[0];
 
+            var packageTagFolder = new DirectoryInfo(this.packagePath.TagFolder);
+            if (!packageTagFolder.Exists)
+            {
+                packageTagFolder.Create();
+            }
 
+            tagFolder.MoveTo(this.packagePath.TagFolder);
+
+            tempFolder.Delete(true);
         }
 
         private async Task<string> ReadAllTextAsync(string path)
@@ -46,10 +57,13 @@ namespace NeuroSpeech.Tasks
             }
         }
 
-        private async Task InstallAsync(PackagePath package, string destination)
+        private async Task InstallAsync(PackagePath package, DirectoryInfo tagFolder)
         {
-            await DownloadAsync(package, destination);
-            
+
+            await DownloadAsync(package, tagFolder);
+
+            tagFolder = tagFolder.GetDirectories()[0];
+
             // read config..
             var packageConfig = await ReadAllTextAsync(destination + "\\package.json");
             var config = JObject.Parse(packageConfig);
@@ -100,16 +114,13 @@ namespace NeuroSpeech.Tasks
             }
 
             await Task.WhenAll( dependencies.Select((p) =>
-                InstallAsync(p, $"{packagePath.TagFolder}\\node_modules\\{p.Package}")
+                InstallAsync(p, $"{tagFolder.FullName}\\node_modules\\{p.Package}")
             ) );
 
         }
 
-        private async Task DownloadAsync(PackagePath package, string destination)
+        private async Task DownloadAsync(PackagePath package, DirectoryInfo tagFolder)
         {
-            var tempFolder = new DirectoryInfo($"{package.Options.TempFolder}\\tmp\\{Guid.NewGuid()}");
-
-            var tagFolder = new DirectoryInfo(destination);
 
             try
             {
@@ -121,25 +132,20 @@ namespace NeuroSpeech.Tasks
                         {
                             // tar.ExtractContents(packagePath.TagFolder);
 
-                            tar.ExtractContents(tempFolder.FullName);
+                            tar.ExtractContents(tagFolder.FullName);
                             var parent = tagFolder.Parent;
                             if (!parent.Exists)
                             {
                                 parent.Create();
                             }
 
-                            var tmp = tempFolder.GetDirectories()[0];
+                            // var tmp = tempFolder.GetDirectories()[0];
 
-                            Directory.Move(tmp.FullName, tagFolder.FullName);
+                            // Directory.Move(tmp.FullName, tagFolder.FullName);
 
                         }
                     }
 
-                }
-
-                if (tempFolder.Exists)
-                {
-                    tempFolder.Delete(true);
                 }
 
             }
