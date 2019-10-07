@@ -35,9 +35,9 @@ namespace NeuroSpeech.Tasks
 
 
             var packageTagFolder = new DirectoryInfo(this.packagePath.TagFolder);
-            if (!packageTagFolder.Exists)
+            if (!packageTagFolder.Parent.Exists)
             {
-                packageTagFolder.Create();
+                packageTagFolder.Parent.Create();
             }
 
             tempFolder.MoveTo(this.packagePath.TagFolder);
