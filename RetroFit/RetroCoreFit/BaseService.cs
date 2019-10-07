@@ -316,7 +316,18 @@ namespace RetroCoreFit
             }
 
             string text = await content.ReadAsStringAsync();
+            return DeserializeJson(text, returnType);
+        }
 
+
+        /// <summary>
+        /// Implementation must take care of JObject and JArray as well
+        /// </summary>
+        /// <param name="text"></param>
+        /// <param name="returnType"></param>
+        /// <returns></returns>
+        protected virtual object DeserializeJson(string text, Type returnType)
+        {
             if (returnType == typeof(JObject))
             {
                 return JObject.Parse(text);
