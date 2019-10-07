@@ -107,16 +107,31 @@ namespace RetroCoreFit
             foreach (var rp in plist)
             {
 
+                object rpValue = rp.Value;
+
+                if (rpValue != null)
+                {
+                    Type valueType = rpValue.GetType();
+                    if (valueType.IsEnum)
+                    {
+                        valueType = Enum.GetUnderlyingType(valueType);
+                        if (valueType != null)
+                        {
+                            rpValue = Convert.ChangeType(rpValue, valueType);
+                        }
+                    }
+                }
+
                 switch (rp.Type)
                 {
 
 
                     case BodyAttribute b:
-                        content = EncodePost(rp.Value);
+                        content = EncodePost(rpValue);
                         break;
                     case QueryAttribute q:
 
-                        if (rp.Value == null)
+                        if (rpValue == null)
                             continue;
 
                         if (!path.Contains("?"))
@@ -124,25 +139,25 @@ namespace RetroCoreFit
                             path += "?";
                         }
 
-                        path += $"{q.Name}={Uri.EscapeDataString(rp.Value.ToString())}&";
+                        path += $"{q.Name}={Uri.EscapeDataString(rpValue.ToString())}&";
 
                         break;
 
                     case PathAttribute p:
-                        path = path.Replace("{" + p.Name + "}", rp.Value.ToString());
+                        path = path.Replace("{" + p.Name + "}", rpValue.ToString());
                         break;
 
                     case HeaderAttribute h:
                         headers = headers ?? new Dictionary<string, string>();
                         if (h.Name != null)
                         {
-                            headers[h.Name] = rp.Value.ToString();
+                            headers[h.Name] = rpValue.ToString();
                         }
-                        else if (rp.Value is KeyValuePair<string, string> kvp)
+                        else if (rpValue is KeyValuePair<string, string> kvp)
                         {
                             headers[kvp.Key] = kvp.Value;
                         }
-                        else if (rp.Value is IEnumerable<KeyValuePair<string, string>> kvps)
+                        else if (rpValue is IEnumerable<KeyValuePair<string, string>> kvps)
                         {
                             foreach (var item in kvps)
                             {
@@ -155,13 +170,13 @@ namespace RetroCoreFit
                         cookies = cookies ?? new Dictionary<string, string>();
                         if (c.Name != null)
                         {
-                            cookies[c.Name] = rp.Value.ToString();
+                            cookies[c.Name] = rpValue.ToString();
                         }
-                        else if (rp.Value is KeyValuePair<string, string> kvp)
+                        else if (rpValue is KeyValuePair<string, string> kvp)
                         {
                             cookies[kvp.Key] = kvp.Value;
                         }
-                        else if (rp.Value is IEnumerable<KeyValuePair<string, string>> kvps)
+                        else if (rpValue is IEnumerable<KeyValuePair<string, string>> kvps)
                         {
                             foreach (var item in kvps)
                             {
@@ -172,13 +187,13 @@ namespace RetroCoreFit
 
                     case FormAttribute f:
                         form = form ?? new Dictionary<string, string>();
-                        form[f.Name] = rp.Value.ToString();
+                        form[f.Name] = rpValue.ToString();
                         break;
 
                     case MultipartAttribute ma:
                         MultipartFormDataContent mfd = (content as MultipartFormDataContent) ?? ((MultipartFormDataContent)(content = new MultipartFormDataContent()));
 
-                        switch (rp.Value)
+                        switch (rpValue)
                         {
                             case string s:
                                 mfd.Add(new StringContent(s), ma.Name);
@@ -197,7 +212,7 @@ namespace RetroCoreFit
                     case MultipartFileAttribute ma:
                         mfd = (content as MultipartFormDataContent) ?? ((MultipartFormDataContent)(content = new MultipartFormDataContent()));
 
-                        switch (rp.Value)
+                        switch (rpValue)
                         {
                             case string s:
                                 mfd.Add(new StringContent(s), ma.Name, ma.FileName);
