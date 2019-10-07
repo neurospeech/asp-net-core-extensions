@@ -114,7 +114,7 @@ namespace NeuroSpeech.Tasks
             }
 
             await Task.WhenAll( dependencies.Select((p) =>
-                InstallAsync(p, $"{tagFolder.FullName}\\node_modules\\{p.Package}")
+                InstallAsync(p, new DirectoryInfo( $"{tagFolder.FullName}\\node_modules\\{p.Package}"))
             ) );
 
         }
