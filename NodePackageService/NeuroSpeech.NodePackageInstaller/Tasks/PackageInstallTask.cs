@@ -33,7 +33,6 @@ namespace NeuroSpeech.Tasks
             
             await InstallAsync(this.packagePath, tempFolder);
 
-            var tagFolder = tempFolder.GetDirectories()[0];
 
             var packageTagFolder = new DirectoryInfo(this.packagePath.TagFolder);
             if (!packageTagFolder.Exists)
@@ -41,7 +40,7 @@ namespace NeuroSpeech.Tasks
                 packageTagFolder.Create();
             }
 
-            tagFolder.MoveTo(this.packagePath.TagFolder);
+            tempFolder.MoveTo(this.packagePath.TagFolder);
 
             tempFolder.Delete(true);
         }
@@ -61,8 +60,6 @@ namespace NeuroSpeech.Tasks
         {
 
             await DownloadAsync(package, tagFolder);
-
-            tagFolder = tagFolder.GetDirectories()[0];
 
             string destination = tagFolder.FullName;
 
@@ -140,6 +137,10 @@ namespace NeuroSpeech.Tasks
                             {
                                 parent.Create();
                             }
+
+                            var tmp = tagFolder.GetDirectories()[0];
+
+                            tmp.MoveTo(tagFolder.FullName);
 
                             // var tmp = tempFolder.GetDirectories()[0];
 
