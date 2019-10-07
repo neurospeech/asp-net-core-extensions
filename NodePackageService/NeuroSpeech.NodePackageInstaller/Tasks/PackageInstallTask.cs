@@ -64,6 +64,8 @@ namespace NeuroSpeech.Tasks
 
             tagFolder = tagFolder.GetDirectories()[0];
 
+            string destination = tagFolder.FullName;
+
             // read config..
             var packageConfig = await ReadAllTextAsync(destination + "\\package.json");
             var config = JObject.Parse(packageConfig);
