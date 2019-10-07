@@ -42,7 +42,7 @@ namespace NeuroSpeech.Tasks
 
             tempFolder.MoveTo(this.packagePath.TagFolder);
 
-            tempFolder.Delete(true);
+            // tempFolder.Delete(true);
         }
 
         private async Task<string> ReadAllTextAsync(string path)
