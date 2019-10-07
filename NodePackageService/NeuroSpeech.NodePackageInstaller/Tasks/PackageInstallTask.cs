@@ -118,8 +118,11 @@ namespace NeuroSpeech.Tasks
 
         }
 
-        private async Task DownloadAsync(PackagePath package, DirectoryInfo tagFolder)
+        private async Task DownloadAsync(PackagePath package, DirectoryInfo destFolder)
         {
+
+            var tempFolder = new DirectoryInfo($"{this.packagePath.Options.TempFolder}\\tmp\\{Guid.NewGuid()}");
+
 
             try
             {
@@ -131,16 +134,16 @@ namespace NeuroSpeech.Tasks
                         {
                             // tar.ExtractContents(packagePath.TagFolder);
 
-                            tar.ExtractContents(tagFolder.FullName);
-                            var parent = tagFolder.Parent;
+                            tar.ExtractContents(tempFolder.FullName);
+                            var parent = destFolder.Parent;
                             if (!parent.Exists)
                             {
                                 parent.Create();
                             }
 
-                            var tmp = tagFolder.GetDirectories()[0];
+                            var tmp = tempFolder.GetDirectories()[0];
 
-                            tmp.MoveTo(tagFolder.FullName);
+                            tmp.MoveTo(destFolder.FullName);
 
                             // var tmp = tempFolder.GetDirectories()[0];
 
@@ -154,17 +157,17 @@ namespace NeuroSpeech.Tasks
             }
             catch
             {
-                if(tagFolder.Exists)
+                if(destFolder.Exists)
                 {
-                    tagFolder.Delete(true);
+                    destFolder.Delete(true);
                 }
                 throw;
             } finally
             {
-                //if (tempFolder.Exists)
-                //{
-                //    tempFolder.Delete(true);
-                //}
+                if (tempFolder.Exists)
+                {
+                    tempFolder.Delete(true);
+                }
             }
         }
 
