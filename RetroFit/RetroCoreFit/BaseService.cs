@@ -94,17 +94,21 @@ namespace RetroCoreFit
             Dictionary<string, string> cookies = null;
             Dictionary<string, string> form = null;
 
-            if (Headers != null && Headers.Any()) {
+            if (Headers != null && Headers.Any())
+            {
                 headers = headers ?? new Dictionary<string, string>();
-                foreach (var header in this.Headers) {
-                    headers[(header.Type as HeaderAttribute).Name] = 
+                foreach (var header in this.Headers)
+                {
+                    headers[(header.Type as HeaderAttribute).Name] =
                         (header.Value as PropertyInfo).GetValue(this)?.ToString();
                 }
             }
 
-            foreach (var rp in plist) {
+            foreach (var rp in plist)
+            {
 
-                switch (rp.Type) {
+                switch (rp.Type)
+                {
 
 
                     case BodyAttribute b:
@@ -115,11 +119,12 @@ namespace RetroCoreFit
                         if (rp.Value == null)
                             continue;
 
-                        if (!path.Contains("?")) {
+                        if (!path.Contains("?"))
+                        {
                             path += "?";
                         }
 
-                        path += $"{q.Name}={Uri.EscapeDataString(rp.Value.ToString())}&"; 
+                        path += $"{q.Name}={Uri.EscapeDataString(rp.Value.ToString())}&";
 
                         break;
 
@@ -173,7 +178,8 @@ namespace RetroCoreFit
                     case MultipartAttribute ma:
                         MultipartFormDataContent mfd = (content as MultipartFormDataContent) ?? ((MultipartFormDataContent)(content = new MultipartFormDataContent()));
 
-                        switch (rp.Value) {
+                        switch (rp.Value)
+                        {
                             case string s:
                                 mfd.Add(new StringContent(s), ma.Name);
                                 break;
@@ -213,7 +219,8 @@ namespace RetroCoreFit
 
             if (BaseUrl != null)
             {
-                if (!(path.StartsWith("https://") && path.StartsWith("http://"))) {
+                if (!(path.StartsWith("https://") && path.StartsWith("http://")))
+                {
                     Uri uri = new Uri(BaseUrl, path);
                     path = uri.ToString();
                 }
@@ -221,7 +228,8 @@ namespace RetroCoreFit
 
             HttpRequestMessage request = new HttpRequestMessage(method, path);
 
-            if (content != null) {
+            if (content != null)
+            {
                 request.Content = content;
             }
 
@@ -235,20 +243,22 @@ namespace RetroCoreFit
                 request.Content = content;
             }
 
-            if (headers != null) {
-                foreach (var h in headers) {
+            if (headers != null)
+            {
+                foreach (var h in headers)
+                {
                     if (h.Value == null)
                         continue;
                     request.Headers.TryAddWithoutValidation(h.Key, h.Value);
                 }
             }
 
-            if (cookies != null) {
+            if (cookies != null)
+            {
                 var c = string.Join(";", cookies.Select(x => $"{x.Key}={x.Value}"));
                 request.Headers.TryAddWithoutValidation("Cookie", c);
             }
-
-            var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+            HttpResponseMessage response = await SendRequestAsync(request);
 
             Type returnType = typeof(T);
 
@@ -257,7 +267,8 @@ namespace RetroCoreFit
                 return (T)(object)response;
             }
 
-            if (response.IsSuccessStatusCode) {
+            if (response.IsSuccessStatusCode)
+            {
 
 
                 if (typeof(IApiResponse).IsAssignableFrom(returnType))
@@ -269,12 +280,12 @@ namespace RetroCoreFit
                     return (T)(object)rv;
                 }
 
-                return (T)( await DecodeResultAsync(response.Content, returnType));
+                return (T)(await DecodeResultAsync(response.Content, returnType));
 
             }
 
             string error = await response.Content.ReadAsStringAsync();
-            if(response.Content.Headers.ContentType?.ToString()?.Contains("/json") ?? false)
+            if (response.Content.Headers.ContentType?.ToString()?.Contains("/json") ?? false)
             {
                 var e = JToken.Parse(error);
                 var message = "Application Error";
@@ -298,6 +309,11 @@ namespace RetroCoreFit
                     e);
             }
             throw new HttpException(path, response.StatusCode, error);
+        }
+
+        protected virtual async Task<HttpResponseMessage> SendRequestAsync(HttpRequestMessage request)
+        {
+            return await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
         }
 
         protected virtual async Task<object> DecodeResultAsync(HttpContent content, Type returnType)
