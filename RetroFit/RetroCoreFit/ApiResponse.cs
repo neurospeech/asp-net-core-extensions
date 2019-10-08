@@ -1,4 +1,5 @@
-﻿using System;
+﻿using NeuroSpeech;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -35,7 +36,7 @@ namespace RetroCoreFit
 
             foreach (var k in response.Headers)
             {
-                this.Headers[k.Key] = k.Value.ToString();
+                this.Headers[k.Key] = string.Join("", k.Value);
                 if (headerProperties.TryGetValue(k.Key.ToLower(), out var p))
                 {
                     object v = k.Value.ToString();

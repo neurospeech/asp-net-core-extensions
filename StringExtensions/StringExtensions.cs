@@ -57,6 +57,17 @@ namespace NeuroSpeech
 
 
         /// <summary>
+        /// Starts with (Case Insensitive)
+        /// </summary>
+        /// <param name="text"></param>
+        /// <param name="test"></param>
+        /// <returns></returns>
+        public static bool StartsWithIgnoreCase(this string text, params string[] test)
+        {
+            return test.Any(t => text.StartsWith(t, StringComparison.OrdinalIgnoreCase));
+        }
+
+        /// <summary>
         ///  Equals (Case Insensitive) 
         /// </summary>
         /// <param name="text"></param>
@@ -178,6 +189,17 @@ namespace NeuroSpeech
         public static string ToQuoted(this string input)
         {
             return $"\"{input}\"";
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="list"></param>
+        /// <param name="sep"></param>
+        /// <returns></returns>
+        public static string JoinText(this IEnumerable<string> list, string sep = ", ")
+        {
+            return string.Join(sep, list);
         }
     }
 }
