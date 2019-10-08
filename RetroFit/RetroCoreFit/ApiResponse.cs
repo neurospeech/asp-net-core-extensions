@@ -35,10 +35,11 @@ namespace RetroCoreFit
 
             foreach (var k in response.Headers)
             {
-                this.Headers[k.Key] = string.Join("", k.Value);
+                string sv = string.Join("", k.Value);
+                this.Headers[k.Key] = sv;
                 if (headerProperties.TryGetValue(k.Key.ToLower(), out var p))
                 {
-                    object v = k.Value.ToString();
+                    object v = sv;
                     if (p.PropertyType != typeof(string))
                     {
                         v = p.PropertyType.ConvertFrom(v);
