@@ -15,6 +15,8 @@ namespace RetroCoreFit
 
     public class ApiResponse<T> : IApiResponse
     {
+        private static Dictionary<string, PropertyInfo> _headerProperties = null;
+
         public Dictionary<string, string> Headers { get; protected set; }
 
         public T Model { get; protected set; }
@@ -24,12 +26,12 @@ namespace RetroCoreFit
 
             this.Headers = new Dictionary<string, string>();
 
-            var headerProperties = this.GetType().GetProperties().Select(x => new
+            var headerProperties = _headerProperties ?? (_headerProperties = this.GetType().GetProperties().Select(x => new
             {
                 Property = x,
                 Header = x.GetCustomAttribute<HeaderAttribute>()
             }).Where(x => x.Header != null)
-            .ToDictionary(x => x.Header.Name.ToLower(), x => x.Property);
+            .ToDictionary(x => x.Header.Name.ToLower(), x => x.Property));
 
             foreach (var k in response.Headers)
             {
@@ -39,8 +41,7 @@ namespace RetroCoreFit
                     object v = k.Value.ToString();
                     if (p.PropertyType != typeof(string))
                     {
-                        var t = Nullable.GetUnderlyingType(p.PropertyType) ?? p.PropertyType;
-                        v = Convert.ChangeType(v, t);
+                        v = p.PropertyType.ConvertFrom(v);
                     }
                     p.SetValue(this, v);
                 }
