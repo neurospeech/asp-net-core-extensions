@@ -5,6 +5,7 @@ using System.Linq.Expressions;
 using System.Net.Http;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Threading;
 
 namespace RetroCoreFit
 {
@@ -124,6 +125,11 @@ namespace RetroCoreFit
                         if (n.Name == null) {
                             n.Name = mp.Name;
                         }
+                    }
+
+                    if (ra == null && mp.ParameterType == typeof(CancellationToken))
+                    {
+                        ra = new CancelAttribute();
                     }
 
                     rplist.Add(ra ?? throw 

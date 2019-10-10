@@ -8,6 +8,7 @@ using System.Net;
 using System.Net.Http;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace RetroCoreFit
@@ -93,6 +94,7 @@ namespace RetroCoreFit
             Dictionary<string, string> headers = null;
             Dictionary<string, string> cookies = null;
             Dictionary<string, string> form = null;
+            CancellationToken token = CancellationToken.None;
 
             if (Headers != null && Headers.Any())
             {
@@ -121,6 +123,7 @@ namespace RetroCoreFit
                         }
                     }
                 }
+
 
                 switch (rp.Type)
                 {
@@ -227,6 +230,9 @@ namespace RetroCoreFit
                                 throw new NotSupportedException();
                         }
                         break;
+                    case CancelAttribute ca:
+                        token = (CancellationToken)rpValue;
+                        break;
 
                 }
 
@@ -273,7 +279,7 @@ namespace RetroCoreFit
                 var c = string.Join(";", cookies.Select(x => $"{x.Key}={x.Value}"));
                 request.Headers.TryAddWithoutValidation("Cookie", c);
             }
-            HttpResponseMessage response = await SendRequestAsync(request);
+            HttpResponseMessage response = await SendRequestAsync(request, token);
 
             Type returnType = typeof(T);
 
@@ -290,12 +296,14 @@ namespace RetroCoreFit
                 {
                     var rv = (object)Activator.CreateInstance<T>();
                     var irv = rv as IApiResponse;
-                    var r = await DecodeResultAsync(response.Content, irv.GetModelType());
+                    var r = await DecodeResultAsync(response.Content, irv.GetModelType(), token);
                     irv.Initialize(response, r);
+                    if (token.IsCancellationRequested) throw new TaskCanceledException();
+                    
                     return (T)(object)rv;
                 }
 
-                return (T)(await DecodeResultAsync(response.Content, returnType));
+                return (T)(await DecodeResultAsync(response.Content, returnType, token));
 
             }
 
@@ -326,13 +334,14 @@ namespace RetroCoreFit
             throw new HttpException(path, response.StatusCode, error);
         }
 
-        protected virtual async Task<HttpResponseMessage> SendRequestAsync(HttpRequestMessage request)
+        protected virtual async Task<HttpResponseMessage> SendRequestAsync(HttpRequestMessage request, CancellationToken token)
         {
-            return await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+            return await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
         }
 
-        protected virtual async Task<object> DecodeResultAsync(HttpContent content, Type returnType)
+        protected virtual async Task<object> DecodeResultAsync(HttpContent content, Type returnType, CancellationToken token)
         {
+
             if (returnType == typeof(byte[]))
             {
                 return await content.ReadAsByteArrayAsync();
@@ -347,7 +356,9 @@ namespace RetroCoreFit
             }
 
             string text = await content.ReadAsStringAsync();
-            return DeserializeJson(text, returnType);
+            if (token.IsCancellationRequested) throw new TaskCanceledException();
+            var r = DeserializeJson(text, returnType);
+            return r;
         }
 
 

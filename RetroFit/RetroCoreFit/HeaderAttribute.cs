@@ -125,6 +125,15 @@ namespace RetroCoreFit
     }
 
     [AttributeUsage(AttributeTargets.Parameter)]
+    public sealed class CancelAttribute : ParamAttribute
+    {
+        public CancelAttribute()
+        {
+
+        }
+    }
+
+    [AttributeUsage(AttributeTargets.Parameter)]
     public sealed class CookieAttribute : ParamAttribute
     {
         public CookieAttribute()
