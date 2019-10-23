@@ -22,10 +22,21 @@ public interface IBackendService {
     
     // retrive http response for detailed response
     [Get("/video/{id}.mp4")]
-    Task<HttpResponseMessage> GetRawResponse([Query("id")] string id);
+    Task<HttpResponseMessage> GetRawResponseAsync([Query("id")] string id);
     
     [Get("/voice/{id}.mp3")]
-    Task<byte[]> GetByteArray([Query("id")] string id);
+    Task<byte[]> GetByteArrayAsync([Query("id")] string id);
+    
+    // Response Object with Header
+    [Get("/projects")]
+    Task<GitLabResponse<GitLabProject>> GetProjectsAsync();
+}
+
+public class GitLabResponse<T>: ApiResponse<T[]> {
+
+   [Header("x-total-pages")]
+   public int TotalPages {get;set;}
+
 }
 
 ```
