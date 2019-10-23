@@ -35,6 +35,10 @@ namespace NeuroSpeech.EFCoreLiveMigration
 
         public static string[] GetOldNames(this IProperty property)
         {
+            if (property.PropertyInfo == null)
+            {
+                return null;
+            }
             var oa = property.PropertyInfo.GetCustomAttributes<OldNameAttribute>();
 
             return oa.Select(x=>x.Name).ToArray();
