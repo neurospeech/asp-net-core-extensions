@@ -288,50 +288,58 @@ namespace RetroCoreFit
                 return (T)(object)response;
             }
 
-            if (response.IsSuccessStatusCode)
+            if (returnType == typeof(Stream))
             {
-
-
-                if (typeof(IApiResponse).IsAssignableFrom(returnType))
-                {
-                    var rv = (object)Activator.CreateInstance<T>();
-                    var irv = rv as IApiResponse;
-                    var r = await DecodeResultAsync(response.Content, irv.GetModelType(), token);
-                    irv.Initialize(response, r);
-                    if (token.IsCancellationRequested) throw new TaskCanceledException();
-                    
-                    return (T)(object)rv;
-                }
-
-                return (T)(await DecodeResultAsync(response.Content, returnType, token));
-
+                // return await content.ReadAsStreamAsync();
+                throw new NotSupportedException("In order to read Stream, use HttpResponseMessage as return type of Method");
             }
 
-            string error = await response.Content.ReadAsStringAsync();
-            if (response.Content.Headers.ContentType?.ToString()?.Contains("/json") ?? false)
-            {
-                var e = JToken.Parse(error);
-                var message = "Application Error";
-                if (e is JObject)
-                {
-                    var msg = e.OfType<JProperty>().FirstOrDefault(x =>
-                        x.Name.Equals("exceptionMessage", StringComparison.OrdinalIgnoreCase)
-                        || x.Name.Equals("message", StringComparison.OrdinalIgnoreCase)
-                        || x.Name.Equals("error", StringComparison.OrdinalIgnoreCase)
-                        || x.Name.Equals("errors", StringComparison.OrdinalIgnoreCase));
+            using (response) {
 
-                    if (!(msg.Value is JArray))
+                if (response.IsSuccessStatusCode)
+                {
+
+                    if (typeof(IApiResponse).IsAssignableFrom(returnType))
                     {
-                        message = msg.Value.ToString();
+                        var rv = (object)Activator.CreateInstance<T>();
+                        var irv = rv as IApiResponse;
+                        var r = await DecodeResultAsync(response.Content, irv.GetModelType(), token);
+                        irv.Initialize(response, r);
+                        if (token.IsCancellationRequested) throw new TaskCanceledException();
+                        
+                        return (T)(object)rv;
                     }
+
+                    return (T)(await DecodeResultAsync(response.Content, returnType, token));
+
                 }
-                throw new ApiException(
-                    path,
-                    response.StatusCode,
-                    message,
-                    e);
+
+                string error = await response.Content.ReadAsStringAsync();
+                if (response.Content.Headers.ContentType?.ToString()?.Contains("/json") ?? false)
+                {
+                    var e = JToken.Parse(error);
+                    var message = "Application Error";
+                    if (e is JObject)
+                    {
+                        var msg = e.OfType<JProperty>().FirstOrDefault(x =>
+                            x.Name.Equals("exceptionMessage", StringComparison.OrdinalIgnoreCase)
+                            || x.Name.Equals("message", StringComparison.OrdinalIgnoreCase)
+                            || x.Name.Equals("error", StringComparison.OrdinalIgnoreCase)
+                            || x.Name.Equals("errors", StringComparison.OrdinalIgnoreCase));
+
+                        if (!(msg.Value is JArray))
+                        {
+                            message = msg.Value.ToString();
+                        }
+                    }
+                    throw new ApiException(
+                        path,
+                        response.StatusCode,
+                        message,
+                        e);
+                }
+                throw new HttpException(path, response.StatusCode, error);
             }
-            throw new HttpException(path, response.StatusCode, error);
         }
 
         protected virtual async Task<HttpResponseMessage> SendRequestAsync(HttpRequestMessage request, CancellationToken token)
@@ -345,10 +353,6 @@ namespace RetroCoreFit
             if (returnType == typeof(byte[]))
             {
                 return await content.ReadAsByteArrayAsync();
-            }
-            if (returnType == typeof(Stream))
-            {
-                return await content.ReadAsStreamAsync();
             }
             if (returnType == typeof(String))
             {
