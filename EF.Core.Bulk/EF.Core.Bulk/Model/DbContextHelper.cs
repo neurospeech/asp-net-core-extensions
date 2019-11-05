@@ -90,9 +90,13 @@ namespace EFCoreBulk
                     foreach (var item in context.Set<T>().ToList()) {
 
                         var found = list.FirstOrDefault(x => keys.All( k => k.PropertyInfo.GetValue(item) == k.PropertyInfo.GetValue(x) ));
-                        foreach (var ae in queryInfo.Sql.Projection.OfType<TableExpression>()) {
+                        foreach (var ae in queryInfo.Sql.Projection.OfType<ProjectionExpression>()) {
                             //if (ae.Expression is ColumnExpression ce && ce..IsKey())
                             //    continue;
+                            if (keys.Any(k => k.GetColumnName() == ae.Alias))
+                            {
+                                continue;
+                            }
                             var p = typeof(T).GetProperty(ae.Alias);
                             p.SetValue(item, p.GetValue(found));
                         }                        
@@ -107,7 +111,7 @@ namespace EFCoreBulk
                 var tableName = entityType.GetTableName();
 
                 string setVariables = string.Join(", ",
-                    queryInfo.Sql.Tables.OfType<TableExpression>()
+                    queryInfo.Sql.Projection
                     // .Where(x => !(x.Expression is ColumnExpression ce))
                     .Select(x => $"T1.{x.Alias} = T2.{x.Alias}"));
 
@@ -207,7 +211,7 @@ namespace EFCoreBulk
                 var sql = $"INSERT INTO {tableName} (";
 
                 sql += string.Join(", ",
-                    queryInfo.Sql.Projection.OfType<TableExpression>()
+                    queryInfo.Sql.Projection.OfType<ProjectionExpression>()
                     .Select(x => x.Alias));
 
                 sql += $")  ({queryInfo.Command})";

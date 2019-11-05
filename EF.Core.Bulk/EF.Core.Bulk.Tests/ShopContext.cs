@@ -43,7 +43,7 @@ namespace EFCoreBulk.Model
 
             modelBuilder.Entity<ProductAccount>().HasKey(x => new { x.AccountID, x.ProductID });
 
-            modelBuilder.Entity<Product>().Property(x => x.Archived).HasDefaultValueSql("0");
+            //modelBuilder.Entity<Product>().Property(x => x.Archived).HasDefaultValueSql("0");
         }
     }
 
