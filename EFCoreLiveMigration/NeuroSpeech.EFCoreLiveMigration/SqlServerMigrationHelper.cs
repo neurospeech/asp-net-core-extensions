@@ -14,6 +14,8 @@ namespace NeuroSpeech.EFCoreLiveMigration
         {
         }
 
+        public override string Escape(string name) => $"[{name}]";
+
         public override DbCommand CreateCommand(string command, Dictionary<string, object> plist = null)
         {
             var cmd = context.Database.GetDbConnection().CreateCommand();
@@ -72,7 +74,8 @@ namespace NeuroSpeech.EFCoreLiveMigration
             var pkeys = columns.Where(x => x.IsPrimaryKey).ToList();
             
             string createTable = $"IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='{name}' AND TABLE_SCHEMA = '{schema}')"
-                + $" CREATE TABLE {schema}.{name} ({ string.Join(",", pkeys.Select(c => ToColumn(c))) }, PRIMARY KEY( { string.Join(", ", pkeys.Select(x=> "["  + x.ColumnName + "]")) } ))";
+                + $" CREATE TABLE {schema}.{name} ({ string.Join(",", pkeys.Select(c => ToColumn(c))) }, " +
+                 $"PRIMARY KEY( { string.Join(", ", pkeys.Select(x=> this.Escape(x.ColumnName) )) } ))";
 
             Run(createTable);
 
@@ -129,7 +132,7 @@ namespace NeuroSpeech.EFCoreLiveMigration
             if (copies.Any()) {
                 foreach (var copy in copies)
                 {
-                    var update = $"UPDATE {name} SET {copy.ColumnName} = {copy.CopyFrom};";
+                    var update = $"UPDATE {name} SET {this.Escape(copy.ColumnName)} = {this.Escape(copy.CopyFrom)};";
                     Run(update);
                 }
             }
@@ -143,7 +146,7 @@ namespace NeuroSpeech.EFCoreLiveMigration
 
         private string ToColumn(SqlColumn c)
         {
-            var name = $"[{c.ColumnName}] {c.DataType}";
+            var name = $"{this.Escape(c.ColumnName)} {c.DataType}";
             if (IsText(c.DataType))
             {
                 if (c.DataLength > 0 && c.DataLength < int.MaxValue)
@@ -188,8 +191,8 @@ namespace NeuroSpeech.EFCoreLiveMigration
 
 
             var allIndexes = indexes.Select(x => new SqlIndex{
-                Name = x.Relational().Name,
-                Columns = x.Properties.Select(p => p.Relational().ColumnName).ToArray()
+                Name = x.GetName(),
+                Columns = x.Properties.Select(p => p.GetColumnName()).ToArray()
             });
 
             EnsureIndexes(tableName, allIndexes);
@@ -267,8 +270,8 @@ namespace NeuroSpeech.EFCoreLiveMigration
         {
             var allIndexes = fkeys.Select(x => new SqlIndex
             {
-                Name = "IX" + x.Relational().Name,
-                Columns = x.Properties.Select(p => p.Relational().ColumnName).ToArray()
+                Name = "IX" + x.GetConstraintName(),
+                Columns = x.Properties.Select(p => p.GetColumnName()).ToArray()
             });
 
             EnsureIndexes(tableName, allIndexes);

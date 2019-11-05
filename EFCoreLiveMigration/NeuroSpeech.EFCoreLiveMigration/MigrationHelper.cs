@@ -9,6 +9,9 @@ using System.Transactions;
 using System.Linq;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Reflection;
+using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace NeuroSpeech.EFCoreLiveMigration
 {
@@ -35,7 +38,7 @@ namespace NeuroSpeech.EFCoreLiveMigration
 
             foreach (var entity in context.Model.GetEntityTypes())
             {
-                var relational = entity.Relational();
+                // var relational = entity.Relational();
 
                 var columns = entity.GetProperties().Select(x => CreateColumn(x)).ToList();
 
@@ -63,11 +66,27 @@ namespace NeuroSpeech.EFCoreLiveMigration
                     using (var tx = context.Database.GetDbConnection().BeginTransaction(System.Data.IsolationLevel.Serializable))
                     {
                         this.Transaction = tx;
-                        SyncSchema(relational.Schema, relational.TableName, columns);
 
-                        SyncIndexes(relational.Schema, relational.TableName, indexes);
+                        // var mb = new MigrationBuilder(context.Database.ProviderName);
 
-                        SyncIndexes(relational.Schema, relational.TableName, fkeys);
+                        SyncSchema(entity.GetSchema(), entity.GetTableName(), columns);
+
+                        SyncIndexes(entity.GetSchema(), entity.GetTableName(), indexes);
+
+                        SyncIndexes(entity.GetSchema(), entity.GetTableName(), fkeys);
+
+                        //var sp = (context as IInfrastructure<IServiceProvider>);
+
+                        //var msg = sp.GetService<IMigrationsSqlGenerator>();
+
+                        //var conn = sp.GetService<IRelationalConnection>();
+
+                        //foreach(var cmd in msg.Generate(mb.Operations))
+                        //{
+
+
+                        //    cmd.ExecuteNonQuery(conn);
+                        //}
 
                         tx.Commit();
                     }
@@ -84,26 +103,24 @@ namespace NeuroSpeech.EFCoreLiveMigration
         internal abstract void SyncIndexes(string schema, string tableName, IEnumerable<IForeignKey> fkeys);
         internal abstract void SyncIndexes(string schema, string tableName, IEnumerable<IIndex> indexes);
 
-        private static SqlColumn CreateColumn(IProperty x)
+        private SqlColumn CreateColumn(IProperty x)
         {
             var r = new SqlColumn
             {
                 CLRType = x.ClrType,
-                ColumnDefault = x.Relational().DefaultValueSql,
-                ColumnName = x.Relational().ColumnName,
+                ColumnDefault = x.GetDefaultValueSql(),
+                ColumnName = x.GetColumnName(),
                 DataLength = x.GetMaxLength() ?? 0,
-                DataType = x.GetColumnType(),
+                DataType = x.GetColumnTypeForSql(),
                 IsNullable = x.IsNullable,
                 IsPrimaryKey = x.IsPrimaryKey()
             };
-
-            var rr = x.Relational();
 
 
             r.OldNames = x.GetOldNames();
 
             if (!x.IsNullable){
-                r.ColumnDefault = x.Relational().DefaultValueSql;
+                r.ColumnDefault = x.GetDefaultValueSql();
             }
 
             if (x.PropertyInfo.GetCustomAttribute<DatabaseGeneratedAttribute>()?.DatabaseGeneratedOption == DatabaseGeneratedOption.Identity) {
@@ -113,15 +130,20 @@ namespace NeuroSpeech.EFCoreLiveMigration
             return r;
         }
 
+        public abstract string Escape(string name);
+
         public abstract DbCommand CreateCommand(String command, Dictionary<string, object> plist = null);
 
-        public int Run(string command, Dictionary<string, object> plist = null) {
-            using (var cmd = CreateCommand(command, plist)) {
+        public int Run(string command, Dictionary<string, object> plist = null)
+        {
+            using (var cmd = CreateCommand(command, plist))
+            {
                 try
                 {
                     return cmd.ExecuteNonQuery();
                 }
-                catch (Exception ex) {
+                catch (Exception ex)
+                {
                     throw new InvalidOperationException($"RunAsync failed for {command}", ex);
                 }
             }

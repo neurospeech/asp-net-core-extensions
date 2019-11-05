@@ -23,7 +23,6 @@ Useful Cache Extensions</Description>
   </ItemGroup>
   
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Microsoft.AspNetCore.Http.Features" Version="3.0.0" />
     <PackageReference Include="MimeKit" Version="2.4.0" />
     <PackageReference Include="NeuroSpeech.CrockfordBase32" Version="1.0.0" />

@@ -108,7 +108,7 @@ namespace EFCoreBulk
 
                 string setVariables = string.Join(", ",
                     queryInfo.Sql.Tables.OfType<TableExpression>()
-                    .Where(x => !(x.Expression is ColumnExpression ce))
+                    // .Where(x => !(x.Expression is ColumnExpression ce))
                     .Select(x => $"T1.{x.Alias} = T2.{x.Alias}"));
 
                 string pkeys = "";
