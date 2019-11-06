@@ -52,7 +52,6 @@ namespace EFCoreBulk.Tests
         public BaseTest(ITestOutputHelper writer)
         {
             this.Writer = writer;
-            this.DoNotDelete = true;
         }
 
         protected override void DumpLogs()
@@ -88,8 +87,6 @@ namespace EFCoreBulk.Tests
             });
 
             db.SaveChanges();
-
-            DoNotDelete = true;
         }
     }
 }

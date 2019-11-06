@@ -120,7 +120,7 @@ namespace NeuroSpeech.EFCoreLiveMigration
             r.OldNames = x.GetOldNames();
 
             if (!x.IsNullable){
-                r.ColumnDefault = x.GetDefaultValueSql();
+                r.ColumnDefault = x.GetDefaultValueSql() ?? (x.GetDefaultValue()?.ToString());
             }
 
             if (x.PropertyInfo.GetCustomAttribute<DatabaseGeneratedAttribute>()?.DatabaseGeneratedOption == DatabaseGeneratedOption.Identity) {

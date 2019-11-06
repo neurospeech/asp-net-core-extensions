@@ -183,6 +183,10 @@ namespace NeuroSpeech.EFCoreLiveMigration
                     name += " Identity ";
                 }
             }
+            if (!string.IsNullOrWhiteSpace(c.ColumnDefault))
+            {
+                name += " DEFAULT " + c.ColumnDefault;
+            }
             return name;
         }
 

@@ -258,10 +258,24 @@ namespace EFCoreBulk
                 var entityType = context.Model.GetEntityTypes().FirstOrDefault(x => x.ClrType == typeof(T));
                 var firstExp = sql.Tables.FirstOrDefault();
 
-                var existing = new List<Expression>(sql.Projection);
+                var existing = new List<ProjectionExpression>(sql.Projection);
 
                 var schema = entityType.GetSchema();
                 var tableName = entityType.GetTableName();
+
+                // add primary key..
+                //var ke = new EntityProjectionExpression(entityType, firstTable, false);
+
+                //foreach (var key in entityType.GetProperties().Where(x => x.IsKey()))
+                //{
+                //    var name = key.GetColumnName();
+                //    if (existing.Any(x => x.Alias == name))
+                //    {
+                //        continue;
+                //    }
+                //    // existing.Add(new ProjectionExpression(  , name));
+                //    sql.AddToProjection(ke);
+                //}
 
                 //foreach (var key in entityType.GetKeys().SelectMany(x=>x.Properties)) {
                 //    if (sql.Projection.OfType<AliasExpression>().Any(e => e.Alias == key.Name))
