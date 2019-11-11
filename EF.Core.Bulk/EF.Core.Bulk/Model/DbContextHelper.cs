@@ -289,7 +289,9 @@ namespace EFCoreBulk
             }
         }
 
-        public static (string, IReadOnlyDictionary<string, object>, SelectExpression, SqlExpressionFactory) ToSqlWithParams<TEntity>(this IQueryable<TEntity> query)
+        public static (string, IReadOnlyDictionary<string, object>, SelectExpression, SqlExpressionFactory) ToSqlWithParams<TEntity>(
+            this IQueryable<TEntity> query,
+            SelectExpression sql = null)
         {
             var enumerator = query.Provider
                 .Execute<IEnumerable<TEntity>>(query.Expression)
@@ -308,6 +310,10 @@ namespace EFCoreBulk
 
             var dependencies = factory.GetPrivateField<QuerySqlGeneratorDependencies>("_dependencies");
 
+            if (sql != null)
+            {
+                selectExpression = sql;
+            }
             var translator = new FixCastErrorExpressionVisitor(dependencies, queryContext, typeMappingSource);
 
             selectExpression = translator.FixError(selectExpression);
@@ -315,8 +321,7 @@ namespace EFCoreBulk
             var command = sqlGenerator.GetCommand(selectExpression);
             
             var parametersDict = queryContext.ParameterValues;
-            var sql = command.CommandText;
-            return (sql, parametersDict, selectExpression, typeMappingSource);
+            return (command.CommandText, parametersDict, selectExpression, typeMappingSource);
         }
 
         private static QueryInfo GenerateCommand<T>(DbContext context, IQueryable<T> query, bool forUpdate = false)
@@ -374,12 +379,13 @@ namespace EFCoreBulk
                 //{
                 //    var p = entityType.GetProperties().FirstOrDefault(x => x.PropertyInfo == b.Member as PropertyInfo);
                 //    var name = p.GetColumnName();
-                    
+
                 //    // sql.AddToProjection(new SqlConstantExpression())
                 //    // existing.Add(new AliasExpression(name, b.Expression ));
                 //}
 
-                
+                (command, paramList, sql, factory) = query.ToSqlWithParams(sql);
+
 
                 //sql.ReplaceProjection(existing);
             }

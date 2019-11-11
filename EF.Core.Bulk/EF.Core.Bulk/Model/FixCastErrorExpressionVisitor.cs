@@ -52,7 +52,23 @@ namespace EFCoreBulk.Model
             {
                 var plist = queryContext.ParameterValues[spe.Name] as System.Collections.IList;
 
-                var ce = sqlFactory.Constant(plist, sqlFactory.GetTypeMappingForValue(plist));
+                // inExpression.Item
+
+                // sqlFactory.a
+
+                // var ce = sqlFactory.Constant(plist.Select(x => (object));
+
+                List<object> list = new List<object>();
+                foreach(var item in plist)
+                {
+                    list.Add(item);
+                }
+
+                var ce = sqlFactory.Constant(list, sqlFactory.GetTypeMappingForValue(list.FirstOrDefault()));
+
+                // sqlFactory.MakeBinary(ExpressionType.or)
+
+
 
                 return inExpression.Update(inExpression.Item, ce, inExpression.Subquery);
 
