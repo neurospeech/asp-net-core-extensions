@@ -20,11 +20,22 @@ namespace EFCoreBulk
     internal static class ObjectHelper
     {
 
+        internal static FieldInfo GetPrivateFieldInfo(this Type type, string name)
+        {
+            var f = type.GetField(name, BindingFlags.NonPublic | BindingFlags.Instance);
+            if (f == null)
+            {
+                if (type.BaseType != null)
+                    return GetPrivateFieldInfo(type.BaseType, name);
+            }
+            return f;
+        }
+
         internal static T GetPrivateField<T>(this object target, string name)
             where T :class
         {
             var type = target.GetType();
-            var field = type.GetField(name, BindingFlags.NonPublic | BindingFlags.Instance);
+            var field = type.GetPrivateFieldInfo(name);
             if (field == null)
             {
                 throw new MissingFieldException($"Field {name} not found on type {type}");
@@ -67,7 +78,7 @@ namespace EFCoreBulk
         public static async Task<int> DeleteAsync<T>(this DbContext context, IQueryable<T> query)
             where T:class
         {
-
+            string sql = null;
             try
             {
 
@@ -87,7 +98,7 @@ namespace EFCoreBulk
                 var schema = entityType.GetSchema();
                 var tableName = entityType.GetTableName();
 
-                var sql = $"DELETE {queryInfo.Sql.Tables.FirstOrDefault().Alias} FROM ";
+                sql = $"DELETE {queryInfo.Sql.Tables.FirstOrDefault().Alias} FROM ";
 
                 int index = queryInfo.Command.IndexOf("FROM ");
                 sql += queryInfo.Command.Substring(index + 5);
@@ -95,7 +106,8 @@ namespace EFCoreBulk
                 return await ExecuteAsync(context, queryInfo, sql);
             }catch (Exception ex)
             {
-                throw;
+                System.Diagnostics.Debug.WriteLine(ex);
+                throw new InvalidOperationException($"Failed to execute: {sql}", ex);
             }
         }
 
@@ -282,15 +294,7 @@ namespace EFCoreBulk
             var enumerator = query.Provider
                 .Execute<IEnumerable<TEntity>>(query.Expression)
                 .GetEnumerator();
-            // const BindingFlags bindingFlags = BindingFlags.NonPublic | BindingFlags.Instance;
             var enumeratorType = enumerator.GetType();
-            // var selectFieldInfo = enumeratorType.GetField("_selectExpression", bindingFlags) ?? throw new InvalidOperationException($"cannot find field _selectExpression on type {enumeratorType.Name}");
-            // var sqlGeneratorFieldInfo = enumeratorType.GetField("_querySqlGeneratorFactory", bindingFlags) ?? throw new InvalidOperationException($"cannot find field _querySqlGeneratorFactory on type {enumeratorType.Name}");
-            // var queryContextFieldInfo = enumeratorType.GetField("_relationalQueryContext", bindingFlags) ?? throw new InvalidOperationException($"cannot find field _relationalQueryContext on type {enumeratorType.Name}");
-
-            // var selectExpression = selectFieldInfo.GetValue(enumerator) as SelectExpression ?? throw new InvalidOperationException($"could not get SelectExpression");
-            // var factory = sqlGeneratorFieldInfo.GetValue(enumerator) as IQuerySqlGeneratorFactory ?? throw new InvalidOperationException($"could not get SqlServerQuerySqlGeneratorFactory");
-            // var queryContext = queryContextFieldInfo.GetValue(enumerator) as RelationalQueryContext ?? throw new InvalidOperationException($"could not get RelationalQueryContext");
 
             var selectExpression = enumerator.GetPrivateField<SelectExpression>("_selectExpression");
             var factory = enumerator.GetPrivateField<IQuerySqlGeneratorFactory>("_querySqlGeneratorFactory");
@@ -298,15 +302,17 @@ namespace EFCoreBulk
 
             var typeMappingSource = enumerator.GetPrivateField<SqlExpressionFactory>("_sqlExpressionFactory");
 
-            // var sqlGenerator = factory.Create();
+            var sqlGenerator = factory.Create();
 
             // selectExpression = FixCastErrorExpressionVisitor.Fix(selectExpression);
 
             var dependencies = factory.GetPrivateField<QuerySqlGeneratorDependencies>("_dependencies");
 
-            var translator = new FixCastErrorExpressionVisitor(dependencies);
+            var translator = new FixCastErrorExpressionVisitor(dependencies, queryContext, typeMappingSource);
 
-            var command = translator.GetCommand(selectExpression);
+            selectExpression = translator.FixError(selectExpression);
+
+            var command = sqlGenerator.GetCommand(selectExpression);
             
             var parametersDict = queryContext.ParameterValues;
             var sql = command.CommandText;
@@ -373,7 +379,7 @@ namespace EFCoreBulk
                 //    // existing.Add(new AliasExpression(name, b.Expression ));
                 //}
 
-                (command, paramList, sql, factory) = query.ToSqlWithParams();
+                
 
                 //sql.ReplaceProjection(existing);
             }
