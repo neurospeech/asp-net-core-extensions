@@ -11,6 +11,7 @@ namespace EFCoreBulk
         public string Command { get; set; }
         public SelectExpression Sql { get; set; }
         public IReadOnlyDictionary<string, object> ParameterValues { get; set; }
+        public List<(string, object)> ConstantProjections { get; set; }
 
     }
 }

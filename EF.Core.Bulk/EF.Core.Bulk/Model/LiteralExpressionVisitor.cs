@@ -15,16 +15,10 @@ namespace EFCoreBulk
     {
 
 
-        public void GetLiteralAssignments(
-            SelectExpression sql, 
-            EntityProjectionExpression ke, 
-            IEntityType entityType,
-            Expression  exp)
+        public IEnumerable<(PropertyInfo,object)> GetLiteralAssignments(Expression  exp)
         {
             Visit(exp);
 
-            var parray = plist.ToArray();
-            
             foreach(var b in initList)
             {
                 var r = Expression
@@ -32,13 +26,8 @@ namespace EFCoreBulk
                     .Compile()
                     .DynamicInvoke(new object[] { null });
 
-                var ce = Expression.Constant(r);
+                yield return (b.Member as PropertyInfo, r);
 
-                var px = entityType.GetProperties().FirstOrDefault(x => x.Name == (b.Member as PropertyInfo).Name);
-
-
-
-                sql.AddToProjection(new SqlConstantExpression(ce, null));
             }
         }
 

@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using EFCoreBulk.Model;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking.Internal;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -10,6 +11,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace EFCoreBulk
@@ -18,11 +20,21 @@ namespace EFCoreBulk
     internal static class ObjectHelper
     {
 
-        internal static object GetPrivateField(this object target, string name)
+        internal static T GetPrivateField<T>(this object target, string name)
+            where T :class
         {
             var type = target.GetType();
             var field = type.GetField(name, BindingFlags.NonPublic | BindingFlags.Instance);
-            return field?.GetValue(target);
+            if (field == null)
+            {
+                throw new MissingFieldException($"Field {name} not found on type {type}");
+            }
+            var value = field.GetValue(target);
+            if (!(value is T tx))
+            {
+                throw new InvalidCastException($"Unable to cast {value.GetType().FullName} to {typeof(T).FullName}");
+            }
+            return tx;
         }
 
     }
@@ -56,27 +68,35 @@ namespace EFCoreBulk
             where T:class
         {
 
-            if (context.Database.IsInMemory()) {
+            try
+            {
 
-                var list = await query.ToListAsync();
-                context.Set<T>().RemoveRange(list);
-                await context.SaveChangesAsync();
-                return list.Count;
+                if (context.Database.IsInMemory())
+                {
+
+                    var list = await query.ToListAsync();
+                    context.Set<T>().RemoveRange(list);
+                    await context.SaveChangesAsync();
+                    return list.Count;
+                }
+
+                var queryInfo = GenerateCommand(context, query);
+
+                var entityType = context.Model.GetEntityTypes().FirstOrDefault(x => x.ClrType == typeof(T));
+
+                var schema = entityType.GetSchema();
+                var tableName = entityType.GetTableName();
+
+                var sql = $"DELETE {queryInfo.Sql.Tables.FirstOrDefault().Alias} FROM ";
+
+                int index = queryInfo.Command.IndexOf("FROM ");
+                sql += queryInfo.Command.Substring(index + 5);
+
+                return await ExecuteAsync(context, queryInfo, sql);
+            }catch (Exception ex)
+            {
+                throw;
             }
-
-            var queryInfo = GenerateCommand(context, query);
-
-            var entityType = context.Model.GetEntityTypes().FirstOrDefault(x => x.ClrType == typeof(T));
-
-            var schema = entityType.GetSchema();
-            var tableName = entityType.GetTableName();
-
-            var sql = $"DELETE {queryInfo.Sql.Tables.FirstOrDefault().Alias} FROM ";
-
-            int index = queryInfo.Command.IndexOf("FROM ");
-            sql += queryInfo.Command.Substring(index + 5);
-
-            return await ExecuteAsync(context, queryInfo, sql);
         }
 
         /// <summary>
@@ -94,7 +114,7 @@ namespace EFCoreBulk
                 var queryInfo = GenerateCommand(context, query, true);
 
                 var entityType = context.Model.GetEntityTypes().FirstOrDefault(x => x.ClrType == typeof(T));
-                var keys = entityType.GetKeys().SelectMany(x => x.Properties);
+                var keys = entityType.GetKeys().SelectMany(x => x.Properties).ToList();
 
                 if (context.Database.IsInMemory()) {
                     var list = await query.ToListAsync();
@@ -102,9 +122,7 @@ namespace EFCoreBulk
                     foreach (var item in context.Set<T>().ToList()) {
 
                         var found = list.FirstOrDefault(x => keys.All( k => k.PropertyInfo.GetValue(item) == k.PropertyInfo.GetValue(x) ));
-                        foreach (var ae in queryInfo.Sql.Projection.OfType<ProjectionExpression>()) {
-                            //if (ae.Expression is ColumnExpression ce && ce..IsKey())
-                            //    continue;
+                        foreach (var ae in queryInfo.Sql.Projection) {
                             if (keys.Any(k => k.GetColumnName() == ae.Alias))
                             {
                                 continue;
@@ -122,10 +140,28 @@ namespace EFCoreBulk
                 var schema = entityType.GetSchema();
                 var tableName = entityType.GetTableName();
 
-                string setVariables = string.Join(", ",
-                    queryInfo.Sql.Projection
-                    .Where(x => !(x.Expression is ColumnExpression ce))
-                    .Select(x => $"T1.{x.Alias} = T2.{x.Alias}"));
+                // LinkedList<string> setVariables = new LinkedList<string>();
+
+                StringBuilder setVariables = new StringBuilder();
+
+                foreach(var p in queryInfo.Sql.Projection)
+                {
+                    var a = p.Alias;
+                    if (string.IsNullOrWhiteSpace(a))
+                    {
+                        continue;
+                    }
+                    if (keys.Any(k => k.GetColumnName() == a))
+                    {
+                        continue;
+                    }
+                    setVariables.AppendWithSeparator($"T1.{a} = T2.{a}");
+                }
+
+                //foreach(var (name,value) in queryInfo.ConstantProjections)
+                //{
+                //    setVariables.AppendWithSeparator($"T1.{name} = T2.{name}");
+                //}
 
                 string pkeys = "";
                 pkeys = string.Join(" AND ", keys.Select(p => $"T1.{p.Name} = T2.{p.Name}"));
@@ -170,6 +206,10 @@ namespace EFCoreBulk
                     {
                         // since array and list are expanded inline, ignore them
                         if (!(p.Value is string) && p.Value is System.Collections.IEnumerable)
+                        {
+                            continue;
+                        }
+                        if (! (p.Value is string || (p.Value.GetType()?.IsValueType ?? false)))
                         {
                             continue;
                         }
@@ -237,45 +277,50 @@ namespace EFCoreBulk
             }
         }
 
-        public static (string, IReadOnlyDictionary<string, object>, SelectExpression) ToSqlWithParams<TEntity>(this IQueryable<TEntity> query)
+        public static (string, IReadOnlyDictionary<string, object>, SelectExpression, SqlExpressionFactory) ToSqlWithParams<TEntity>(this IQueryable<TEntity> query)
         {
-            var provider = query.Provider;
-
-            var queryCompiler = provider.GetPrivateField("_queryCompiler");
-            var db = queryCompiler.GetPrivateField("_database") as IDatabase;
-            var dp = db.GetType().GetProperty("Dependencies", BindingFlags.Instance | BindingFlags.NonPublic);
-
-            var dps = dp.GetValue(db);
-
-            // providerType.GetField("_")
-
             var enumerator = query.Provider
                 .Execute<IEnumerable<TEntity>>(query.Expression)
                 .GetEnumerator();
-            const BindingFlags bindingFlags = BindingFlags.NonPublic | BindingFlags.Instance;
+            // const BindingFlags bindingFlags = BindingFlags.NonPublic | BindingFlags.Instance;
             var enumeratorType = enumerator.GetType();
-            var selectFieldInfo = enumeratorType.GetField("_selectExpression", bindingFlags) ?? throw new InvalidOperationException($"cannot find field _selectExpression on type {enumeratorType.Name}");
-            var sqlGeneratorFieldInfo = enumeratorType.GetField("_querySqlGeneratorFactory", bindingFlags) ?? throw new InvalidOperationException($"cannot find field _querySqlGeneratorFactory on type {enumeratorType.Name}");
-            var queryContextFieldInfo = enumeratorType.GetField("_relationalQueryContext", bindingFlags) ?? throw new InvalidOperationException($"cannot find field _relationalQueryContext on type {enumeratorType.Name}");
+            // var selectFieldInfo = enumeratorType.GetField("_selectExpression", bindingFlags) ?? throw new InvalidOperationException($"cannot find field _selectExpression on type {enumeratorType.Name}");
+            // var sqlGeneratorFieldInfo = enumeratorType.GetField("_querySqlGeneratorFactory", bindingFlags) ?? throw new InvalidOperationException($"cannot find field _querySqlGeneratorFactory on type {enumeratorType.Name}");
+            // var queryContextFieldInfo = enumeratorType.GetField("_relationalQueryContext", bindingFlags) ?? throw new InvalidOperationException($"cannot find field _relationalQueryContext on type {enumeratorType.Name}");
 
-            var selectExpression = selectFieldInfo.GetValue(enumerator) as SelectExpression ?? throw new InvalidOperationException($"could not get SelectExpression");
-            var factory = sqlGeneratorFieldInfo.GetValue(enumerator) as IQuerySqlGeneratorFactory ?? throw new InvalidOperationException($"could not get SqlServerQuerySqlGeneratorFactory");
-            var queryContext = queryContextFieldInfo.GetValue(enumerator) as RelationalQueryContext ?? throw new InvalidOperationException($"could not get RelationalQueryContext");
+            // var selectExpression = selectFieldInfo.GetValue(enumerator) as SelectExpression ?? throw new InvalidOperationException($"could not get SelectExpression");
+            // var factory = sqlGeneratorFieldInfo.GetValue(enumerator) as IQuerySqlGeneratorFactory ?? throw new InvalidOperationException($"could not get SqlServerQuerySqlGeneratorFactory");
+            // var queryContext = queryContextFieldInfo.GetValue(enumerator) as RelationalQueryContext ?? throw new InvalidOperationException($"could not get RelationalQueryContext");
 
-            var sqlGenerator = factory.Create();
-            var command = sqlGenerator.GetCommand(selectExpression);
+            var selectExpression = enumerator.GetPrivateField<SelectExpression>("_selectExpression");
+            var factory = enumerator.GetPrivateField<IQuerySqlGeneratorFactory>("_querySqlGeneratorFactory");
+            var queryContext = enumerator.GetPrivateField<RelationalQueryContext>("_relationalQueryContext");
+
+            var typeMappingSource = enumerator.GetPrivateField<SqlExpressionFactory>("_sqlExpressionFactory");
+
+            // var sqlGenerator = factory.Create();
+
+            // selectExpression = FixCastErrorExpressionVisitor.Fix(selectExpression);
+
+            var dependencies = factory.GetPrivateField<QuerySqlGeneratorDependencies>("_dependencies");
+
+            var translator = new FixCastErrorExpressionVisitor(dependencies);
+
+            var command = translator.GetCommand(selectExpression);
             
             var parametersDict = queryContext.ParameterValues;
             var sql = command.CommandText;
-            return (sql, parametersDict, selectExpression);
+            return (sql, parametersDict, selectExpression, typeMappingSource);
         }
 
         private static QueryInfo GenerateCommand<T>(DbContext context, IQueryable<T> query, bool forUpdate = false)
         {
 
-            var (command, paramList, sql) = query.ToSqlWithParams();
+            var (command, paramList, sql, factory) = query.ToSqlWithParams();
+
 
             if (forUpdate) {
+
                 var firstTable = sql.Tables.OfType<TableExpression>().FirstOrDefault();
                 var entityType = context.Model.GetEntityTypes().FirstOrDefault(x => x.ClrType == typeof(T));
                 var firstExp = sql.Tables.FirstOrDefault();
@@ -287,17 +332,38 @@ namespace EFCoreBulk
 
                 // add primary key..
                 var ke = new EntityProjectionExpression(entityType, firstTable, false);
-                var keyColumns = entityType.GetProperties()
-                    .Where(x => x.IsPrimaryKey())
-                    .Select(x => ke.BindProperty(x));
+                // var keyColumns = entityType.GetProperties()
+                // .Where(x => x.IsPrimaryKey())
+                // .Select(x => ke.BindProperty(x));
+                // sql.AddToProjection(ke);
+
+                var keyColumns = entityType.GetProperties().Where(x => x.IsPrimaryKey());
+
                 foreach(var kc in keyColumns)
                 {
-                    sql.AddToProjection(kc);
+
+                    //var columnName = kc.GetColumnName();
+
+                    //if (sql.Projection.Any((x) => x.Alias == columnName))
+                    //    continue;
+
+                    //var fx = factory.Fragment($"[{firstTable.Alias}].[{columnName}]");
+
+                    sql.AddToProjection(ke.BindProperty(kc));
                 }
 
                 // search for literal...
                 LiteralExpressionVisitor lv = new LiteralExpressionVisitor();
-                lv.GetLiteralAssignments(sql, ke, entityType, query.Expression);
+                foreach(var (me, c) in lv.GetLiteralAssignments(query.Expression))
+                {
+                    var p = entityType.GetProperties().FirstOrDefault(x => x.Name == me.Name);
+                    var columnName = p.GetColumnName();
+                    if (sql.Projection.Any((x) => x.Alias == columnName))
+                        continue;
+                    var ce = factory.Constant(c, factory.GetTypeMappingForValue(c ));
+                    var pe = new ProjectionExpression(ce, columnName);
+                    (sql.Projection as IList<ProjectionExpression>).Add(pe);
+                }
                 //foreach (var b in lv.GetLiteralAssignments())
                 //{
                 //    var p = entityType.GetProperties().FirstOrDefault(x => x.PropertyInfo == b.Member as PropertyInfo);
@@ -307,7 +373,7 @@ namespace EFCoreBulk
                 //    // existing.Add(new AliasExpression(name, b.Expression ));
                 //}
 
-                (command, paramList, sql) = query.ToSqlWithParams();
+                (command, paramList, sql, factory) = query.ToSqlWithParams();
 
                 //sql.ReplaceProjection(existing);
             }
