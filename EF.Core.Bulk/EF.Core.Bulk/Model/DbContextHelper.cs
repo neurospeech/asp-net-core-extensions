@@ -14,6 +14,18 @@ using System.Threading.Tasks;
 
 namespace EFCoreBulk
 {
+
+    internal static class ObjectHelper
+    {
+
+        internal static object GetPrivateField(this object target, string name)
+        {
+            var type = target.GetType();
+            var field = type.GetField(name, BindingFlags.NonPublic | BindingFlags.Instance);
+            return field?.GetValue(target);
+        }
+
+    }
     public static class DbContextHelper
     {
 
@@ -112,7 +124,7 @@ namespace EFCoreBulk
 
                 string setVariables = string.Join(", ",
                     queryInfo.Sql.Projection
-                    // .Where(x => !(x.Expression is ColumnExpression ce))
+                    .Where(x => !(x.Expression is ColumnExpression ce))
                     .Select(x => $"T1.{x.Alias} = T2.{x.Alias}"));
 
                 string pkeys = "";
@@ -227,6 +239,16 @@ namespace EFCoreBulk
 
         public static (string, IReadOnlyDictionary<string, object>, SelectExpression) ToSqlWithParams<TEntity>(this IQueryable<TEntity> query)
         {
+            var provider = query.Provider;
+
+            var queryCompiler = provider.GetPrivateField("_queryCompiler");
+            var db = queryCompiler.GetPrivateField("_database") as IDatabase;
+            var dp = db.GetType().GetProperty("Dependencies", BindingFlags.Instance | BindingFlags.NonPublic);
+
+            var dps = dp.GetValue(db);
+
+            // providerType.GetField("_")
+
             var enumerator = query.Provider
                 .Execute<IEnumerable<TEntity>>(query.Expression)
                 .GetEnumerator();
@@ -242,7 +264,7 @@ namespace EFCoreBulk
 
             var sqlGenerator = factory.Create();
             var command = sqlGenerator.GetCommand(selectExpression);
-
+            
             var parametersDict = queryContext.ParameterValues;
             var sql = command.CommandText;
             return (sql, parametersDict, selectExpression);
@@ -264,39 +286,32 @@ namespace EFCoreBulk
                 var tableName = entityType.GetTableName();
 
                 // add primary key..
-                //var ke = new EntityProjectionExpression(entityType, firstTable, false);
-
-                //foreach (var key in entityType.GetProperties().Where(x => x.IsKey()))
-                //{
-                //    var name = key.GetColumnName();
-                //    if (existing.Any(x => x.Alias == name))
-                //    {
-                //        continue;
-                //    }
-                //    // existing.Add(new ProjectionExpression(  , name));
-                //    sql.AddToProjection(ke);
-                //}
-
-                //foreach (var key in entityType.GetKeys().SelectMany(x=>x.Properties)) {
-                //    if (sql.Projection.OfType<AliasExpression>().Any(e => e.Alias == key.Name))
-                //        continue;
-                //    var name = key.Relational().ColumnName;
-                //    //sql.SetProjectionForMemberInfo(key.PropertyInfo, Expression.Property(firstExp.Expression, key.Name));
-                //    existing.Add(new AliasExpression(name, new ColumnExpression(name, key, firstTable)));
-                //}
+                var ke = new EntityProjectionExpression(entityType, firstTable, false);
+                var keyColumns = entityType.GetProperties()
+                    .Where(x => x.IsPrimaryKey())
+                    .Select(x => ke.BindProperty(x));
+                foreach(var kc in keyColumns)
+                {
+                    sql.AddToProjection(kc);
+                }
 
                 // search for literal...
-                //LiteralExpressionVisitor lv = new LiteralExpressionVisitor(query.Expression);
-                //foreach (var b in lv.GetLiteralAssignments()) {
+                LiteralExpressionVisitor lv = new LiteralExpressionVisitor();
+                lv.GetLiteralAssignments(sql, ke, entityType, query.Expression);
+                //foreach (var b in lv.GetLiteralAssignments())
+                //{
                 //    var p = entityType.GetProperties().FirstOrDefault(x => x.PropertyInfo == b.Member as PropertyInfo);
                 //    var name = p.GetColumnName();
+                    
+                //    // sql.AddToProjection(new SqlConstantExpression())
                 //    // existing.Add(new AliasExpression(name, b.Expression ));
                 //}
-                
+
+                (command, paramList, sql) = query.ToSqlWithParams();
 
                 //sql.ReplaceProjection(existing);
             }
-            
+
 
             // System.Diagnostics.Debug.WriteLine(sql);
 
