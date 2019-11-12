@@ -2,13 +2,8 @@
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Query;
-using Microsoft.EntityFrameworkCore.Query.Expressions;
-using Microsoft.EntityFrameworkCore.Query.ExpressionVisitors;
 using Microsoft.EntityFrameworkCore.Query.Internal;
-using Microsoft.EntityFrameworkCore.Query.Sql;
-using Microsoft.EntityFrameworkCore.Query.Sql.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
-using Remotion.Linq;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -48,7 +43,10 @@ namespace EFCoreBulk.Model
 
             modelBuilder.Entity<ProductAccount>().HasKey(x => new { x.AccountID, x.ProductID });
 
-            modelBuilder.Entity<Product>().Property(x => x.Archived).HasDefaultValueSql("0");
+            modelBuilder.Entity<Product>()
+                .Property(x => x.Archived)
+                .HasDefaultValueSql("0")
+                .ValueGeneratedNever();
         }
     }
 
@@ -68,8 +66,8 @@ namespace EFCoreBulk.Model
         [InverseProperty(nameof(ProductAccount.Product))]
         public ICollection<ProductAccount> ProductAccounts { get; set; }
 
-        [InverseProperty(nameof(Email.Product))]
-        public ICollection<Email> Emails { get; set; }
+        // [InverseProperty(nameof(Email.Product))]
+        // public ICollection<Email> Emails { get; set; }
 
     }
 
@@ -101,41 +99,41 @@ namespace EFCoreBulk.Model
         public ICollection<ProductAccount> ProductAccounts { get; set; }
     }
 
-    [Table("Emails")]
-    public class Email
-    {
+    //[Table("Emails")]
+    //public class Email
+    //{
 
-        [Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public long EmailID { get; set; }
+    //    [Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    //    public long EmailID { get; set; }
 
-        public string Subject { get; set; }
+    //    public string Subject { get; set; }
 
-        public long? ProductID { get; set; }
+    //    public long? ProductID { get; set; }
 
-        [ForeignKey(nameof(ProductID))]
-        [InverseProperty(nameof(Model.Product.Emails))]
-        public Product Product { get; set; }
+    //    [ForeignKey(nameof(ProductID))]
+    //    [InverseProperty(nameof(Model.Product.Emails))]
+    //    public Product Product { get; set; }
 
-        [InverseProperty(nameof(EmailRecipient.Email))]
-        public List<EmailRecipient> EmailRecipients { get; set; }
+    //    [InverseProperty(nameof(EmailRecipient.Email))]
+    //    public List<EmailRecipient> EmailRecipients { get; set; }
 
-    }
+    //}
 
-    [Table("EmailRecipients")]
-    public class EmailRecipient
-    {
-        [Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public long EmailRecipientID { get; set; }
+    //[Table("EmailRecipients")]
+    //public class EmailRecipient
+    //{
+    //    [Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    //    public long EmailRecipientID { get; set; }
 
-        public long EmailID { get; set; }
+    //    public long EmailID { get; set; }
 
-        public DateTime? TimeRead { get; set; }
+    //    public DateTime? TimeRead { get; set; }
 
-        [ForeignKey(nameof(EmailID))]
-        [InverseProperty(nameof(Model.Email.EmailRecipients))]
-        public Email Email { get; set; }
+    //    [ForeignKey(nameof(EmailID))]
+    //    [InverseProperty(nameof(Model.Email.EmailRecipients))]
+    //    public Email Email { get; set; }
 
 
 
-    }
+    //}
 }

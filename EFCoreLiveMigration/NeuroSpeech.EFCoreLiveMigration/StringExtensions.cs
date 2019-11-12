@@ -27,9 +27,9 @@ namespace NeuroSpeech.EFCoreLiveMigration
             return text.Equals(test, StringComparison.OrdinalIgnoreCase);
         }
 
-        public static string GetColumnType(this IProperty property) {
+        public static string GetColumnTypeForSql(this IProperty property) {
 
-            string type = property.Relational().ColumnType;
+            string type = property.GetColumnType();
             return type.Split('(')[0].Trim();
         }
 

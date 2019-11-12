@@ -1,6 +1,7 @@
 ﻿using EFCoreBulk.Model;
 using Microsoft.EntityFrameworkCore;
 using NeuroSpeech.EFCore.Mock;
+using NeuroSpeech.EFCoreLiveMigration;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -63,7 +64,8 @@ namespace EFCoreBulk.Tests
         public AppDbTestContext CreateContext()
         {
             AppDbTestContext db = new AppDbTestContext(ConnectionString);
-            db.Database.EnsureCreated();
+            // db.Database.EnsureCreated();
+            MigrationHelper.ForSqlServer(db).Migrate();
             Seed(db);
             return db;
         }
@@ -85,8 +87,6 @@ namespace EFCoreBulk.Tests
             });
 
             db.SaveChanges();
-
-            DoNotDelete = true;
         }
     }
 }

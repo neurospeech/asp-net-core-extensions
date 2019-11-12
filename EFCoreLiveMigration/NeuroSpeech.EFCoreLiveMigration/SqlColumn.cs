@@ -58,6 +58,12 @@ namespace NeuroSpeech.EFCoreLiveMigration
                 if (IsNullable != dest.IsNullable)
                     return false;
 
+                if ( !(string.IsNullOrWhiteSpace(ColumnDefault)
+                    && string.IsNullOrWhiteSpace(dest.ColumnDefault)))
+                {
+                    return ColumnDefault == dest.ColumnDefault;
+                }
+
                 //if (NumericPrecision != dest.NumericPrecision)
                 //    return false;
                 //if (NumericScale != NumericScale)
