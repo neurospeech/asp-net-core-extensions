@@ -8,5 +8,5 @@
 
 [Retro Core Fit](./RetroFit/README.md)
 [Node Package Service](./NodePackageService/README.md)
-[EFCoreBulk](./EFCore.Bulk/README.md)
+[EFCoreBulk](./EF.Core.Bulk/README.md)
 [EF Core Live Migration](./EFCoreLiveMigration/README.md)
