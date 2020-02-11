@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.NodeServices;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Caching.Memory;
 using System;
@@ -12,6 +11,7 @@ using NeuroSpeech.Tasks;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using NeuroSpeech.Internal;
+using Jering.Javascript.NodeJS;
 
 namespace NeuroSpeech
 {
@@ -39,11 +39,13 @@ namespace NeuroSpeech
         protected override NodeInstalledPackage CreatePackage(PackagePath pp)
         {
 
-            var options = this._Options.NodeServicesOptions ?? new NodeServicesOptions(services)
-            {
-                ProjectPath = pp.TagFolder,
-                NodeInstanceOutputLogger = services.GetService<ILogger<NodePackageService>>()
-            };
+            //var options = this._Options.NodeServicesOptions ?? new NodeJSProcessOptions()
+            //{
+            //    ProjectPath = pp.TagFolder,
+            //    NodeInstanceOutputLogger = services.GetService<ILogger<NodePackageService>>()
+            //};
+
+            ver options = services.Configure<NodeJSProcessOptions>();
 
             options.ProjectPath = pp.TagFolder;
 
@@ -59,7 +61,7 @@ namespace NeuroSpeech
                 }
             }
 
-            var s = NodeServicesFactory.CreateNodeServices(options);
+            var s = services.GetRequiredService<INodeJSService>();
 
             return new NodePackage {
                 Path = pp,
@@ -71,7 +73,7 @@ namespace NeuroSpeech
 
     public class NodePackage: NodeInstalledPackage
     {
-        public INodeServices NodeServices;
+        public INodeJSService NodeServices;
 
         public override void Dispose()
         {

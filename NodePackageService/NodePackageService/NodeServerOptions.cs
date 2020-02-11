@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.NodeServices;
+﻿using Jering.Javascript.NodeJS;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,7 +11,7 @@ namespace NeuroSpeech
         /// <summary>
         /// 
         /// </summary>
-        public NodeServicesOptions NodeServicesOptions { get; set; }
+        public NodeJSProcessOptions NodeServicesOptions { get; set; }
 
     }
 }
