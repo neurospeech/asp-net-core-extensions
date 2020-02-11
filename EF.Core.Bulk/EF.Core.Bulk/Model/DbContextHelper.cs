@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore.ChangeTracking.Internal;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Query;
+using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using Microsoft.EntityFrameworkCore.Storage;
 using System;
@@ -298,11 +299,15 @@ namespace EFCoreBulk
                 .GetEnumerator();
             var enumeratorType = enumerator.GetType();
 
-            var selectExpression = enumerator.GetPrivateField<SelectExpression>("_selectExpression");
-            var factory = enumerator.GetPrivateField<IQuerySqlGeneratorFactory>("_querySqlGeneratorFactory");
+            var commandCache = enumerator.GetPrivateField<RelationalCommandCache>("_relationalCommandCache");
+
+            var selectExpression = commandCache.GetPrivateField<SelectExpression>("_selectExpression");
+            var factory = commandCache.GetPrivateField<IQuerySqlGeneratorFactory>("_querySqlGeneratorFactory");
             var queryContext = enumerator.GetPrivateField<RelationalQueryContext>("_relationalQueryContext");
 
-            var typeMappingSource = enumerator.GetPrivateField<SqlExpressionFactory>("_sqlExpressionFactory");
+            var optimizer = commandCache.GetPrivateField<object>("_parameterValueBasedSelectExpressionOptimizer");
+
+            var typeMappingSource = optimizer.GetPrivateField<SqlExpressionFactory>("_sqlExpressionFactory");
 
             var sqlGenerator = factory.Create();
 
