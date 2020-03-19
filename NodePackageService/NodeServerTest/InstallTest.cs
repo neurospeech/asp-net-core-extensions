@@ -1,5 +1,5 @@
-﻿using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Caching;
 using NeuroSpeech;
 using System;
 using System.Collections.Generic;
@@ -46,8 +46,6 @@ namespace NodeServerTest
         public async Task InstallAsync()
         {
             var serviceProvider = new ServiceCollection()
-                .AddLogging()
-                .AddMemoryCache()
                 .BuildServiceProvider();
 
             var server = new NodePackageService(serviceProvider, new NodePackageServiceOptions
