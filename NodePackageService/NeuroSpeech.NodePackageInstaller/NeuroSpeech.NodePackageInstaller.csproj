@@ -14,6 +14,7 @@
     <DebugSymbols>true</DebugSymbols>
     <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
     <RootNamespace>NeuroSpeech</RootNamespace>
+    <IsPackable>True</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
