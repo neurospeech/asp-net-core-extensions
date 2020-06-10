@@ -236,7 +236,7 @@ namespace NeuroSpeech
             PackagePathSegments pps = path;
             pps = await this.ResolveVersion(pps);
             var pp = new PackagePath(this.Options, pps, true);
-            return await cache.GetOrCreateAsync(pp.Package + "@" + pp.Version, async entry => {
+            return await cache.AtomicGetOrCreateAsync(pp.Package + "@" + pp.Version, async entry => {
 
                 entry.SlidingExpiration = this.Options.TTL;
     
@@ -268,17 +268,4 @@ namespace NeuroSpeech
         }
     }
 
-    public static class AtomicMemoryCacheExtensions
-    {
-        public static async Task<T> AtomicGetOrCreateAsync<T>(
-            this IMemoryCache cache, 
-            string key, 
-            string lockFilePath, 
-            Func<Task<T>> factory) {
-            using (var lockFile = await NFileLock.AcquireAsync(lockFilePath, poolDelay: TimeSpan.FromSeconds(15)))
-            {
-
-            }
-        }
-    }
 }
