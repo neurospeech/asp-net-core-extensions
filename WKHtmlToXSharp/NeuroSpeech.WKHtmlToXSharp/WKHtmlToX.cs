@@ -157,8 +157,6 @@ namespace NeuroSpeech.WKHtmlToXSharp
 
         }
 
-        private static long id = 1;
-
         /// <summary>
         /// Converts given URL or HTML string to PDF.
         /// </summary>
