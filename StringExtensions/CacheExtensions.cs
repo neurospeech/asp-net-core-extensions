@@ -16,12 +16,26 @@ namespace Microsoft.Extensions.Caching.Memory
             string key,
             Func<ICacheEntry, Task<T>> factory)
         {
-            lock (lockObject)
+            return cache.GetOrCreate<Task<T>>(key, (entry) =>
             {
-                return cache.GetOrCreate<Task<T>>(key, (entry) => {
-                    return factory(entry);
-                });
-            }
+                lock (lockObject)
+                {
+                    Func<ICacheEntry, Task<T>> fx = async (e2) => {
+                        try {
+                            return await factory(e2);
+                        } catch
+                        {
+                            // it is stale... 
+                            cache.Remove(key);
+                            throw;
+                        }
+                    };
+                    return cache.GetOrCreate<Task<T>>(key, (e1) =>
+                    {
+                        return fx(e1);
+                    });
+                }
+            });
         }
     }
 }
