@@ -2,9 +2,8 @@
 
   <PropertyGroup>
     <OutputType>Library</OutputType>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
-    <ApplicationIcon />
-    <StartupObject />
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>7.2</LangVersion>
     <Version>1.0.1</Version>
     <Authors>Akash Kava</Authors>
     <Company>NeuroSpeech Technologies Pvt Ltd</Company>
@@ -19,14 +18,10 @@
     <AssemblyName>EFCoreBulk</AssemblyName>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <LangVersion>7.2</LangVersion>
-  </PropertyGroup>
-
   <ItemGroup>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="3.1.1" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="3.1.1" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="3.1.1" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="3.1.10" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="3.1.10" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="3.1.10" />
   </ItemGroup>
 
 </Project>
