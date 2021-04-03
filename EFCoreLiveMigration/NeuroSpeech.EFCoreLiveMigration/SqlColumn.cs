@@ -38,8 +38,8 @@ namespace NeuroSpeech.EFCoreLiveMigration
             }
         }
 
-        public string CopyFrom { get; internal set; }
-        public bool IsIdentity { get; internal set; }
+        public string CopyFrom { get; set; }
+        public bool IsIdentity { get; set; }
 
         public override bool Equals(object obj)
         {

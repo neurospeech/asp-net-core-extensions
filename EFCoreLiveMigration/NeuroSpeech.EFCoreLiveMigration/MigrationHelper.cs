@@ -100,8 +100,8 @@ namespace NeuroSpeech.EFCoreLiveMigration
 
         }
 
-        internal abstract void SyncIndexes(string schema, string tableName, IEnumerable<IForeignKey> fkeys);
-        internal abstract void SyncIndexes(string schema, string tableName, IEnumerable<IIndex> indexes);
+        protected abstract void SyncIndexes(string schema, string tableName, IEnumerable<IForeignKey> fkeys);
+        protected abstract void SyncIndexes(string schema, string tableName, IEnumerable<IIndex> indexes);
 
         private SqlColumn CreateColumn(IProperty x)
         {
