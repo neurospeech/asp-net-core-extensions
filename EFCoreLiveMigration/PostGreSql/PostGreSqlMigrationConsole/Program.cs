@@ -9,7 +9,14 @@ namespace LiveMigrationConsole
         static void Main(string[] args)
         {
             DbContextOptionsBuilder<ERPContext> options = new DbContextOptionsBuilder<ERPContext>();
-            options.UseSqlServer("Server=(localdb)\\mssqllocaldb;Database=ERPModel;Trusted_Connection=True;MultipleActiveResultSets=true");
+
+            Npgsql.NpgsqlConnectionStringBuilder sb = new Npgsql.NpgsqlConnectionStringBuilder();
+            sb.Host = "localhost";
+            sb.Database = "castyy";
+            sb.Username = "postgres";
+            sb.Password = "abcd123";
+
+            options.UseNpgsql(sb.ConnectionString);
 
             using (var db = new ERPContext(options.Options)) {
 

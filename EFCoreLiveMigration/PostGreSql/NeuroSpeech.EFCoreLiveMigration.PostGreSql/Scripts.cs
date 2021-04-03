@@ -9,10 +9,11 @@ namespace NeuroSpeech.EFCoreLiveMigration.PostGreSql
 		public const string SqlServerGetSchema = @"select 
 ISC.ordinal_position as Ordinal,
 ISC.column_name as ColumnName,
+ISC.column_default as ColumnDefault,
 (ISC.is_nullable = 'YES') as IsNullable,
 ISC.data_type as DataType,
 ISC.character_maximum_length as DataLength,
-ISC.numeric_precision as NumberPrecision,
+ISC.numeric_precision as NumericPrecision,
 ISC.numeric_scale as NumericScale,
 (ISC.is_identity = 'YES') as IsIdentity,
 (SELECT 1 FROM information_schema.CONSTRAINT_COLUMN_USAGE as CCU

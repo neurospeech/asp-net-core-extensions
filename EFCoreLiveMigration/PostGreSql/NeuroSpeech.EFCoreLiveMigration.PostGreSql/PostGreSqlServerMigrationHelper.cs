@@ -16,9 +16,16 @@ namespace NeuroSpeech.EFCoreLiveMigration.PostGreSql
         {
         }
 
+        protected override string GetDefaultSchema() => "public";
+
+        public string RenameColumn(in TableName table, string oldName, string newName)
+        {
+            return $"ALTER TABLE {table.EscapedFullName} RENAME {Escape(oldName)} TO {Escape(newName)}";
+        }
+
         public override string Escape(string name) => $"\"{name}\"";
 
-        public override DbCommand CreateCommand(string command, Dictionary<string, object> plist = null)
+        public override DbCommand CreateCommand(string command, IEnumerable<KeyValuePair<string, object>> plist = null)
         {
             var cmd = context.Database.GetDbConnection().CreateCommand();
             cmd.CommandText = command;
@@ -36,14 +43,14 @@ namespace NeuroSpeech.EFCoreLiveMigration.PostGreSql
             return cmd;
         }
 
-        public override List<SqlColumn> GetCommonSchema(string name)
+        public override List<SqlColumn> GetCommonSchema(in TableName table)
         {
 
 
             List<SqlColumn> columns = new List<SqlColumn>();
             string sqlColumns = Scripts.SqlServerGetSchema;
 
-            using (var reader = Read(sqlColumns, new Dictionary<string, object> { { "@TableName", name } }))
+            using (var reader = Read(sqlColumns, new Dictionary<string, object> { { "@TableName", table.Name } }))
             {
 
 
@@ -68,20 +75,17 @@ namespace NeuroSpeech.EFCoreLiveMigration.PostGreSql
             return columns;
         }
 
-        public override void SyncSchema(string schema, string name, List<SqlColumn> columns)
+        public override void SyncSchema(in TableName table, List<SqlColumn> columns)
         {
-
-            schema = string.IsNullOrWhiteSpace(schema) ? "dbo" : schema;
 
             var pkeys = columns.Where(x => x.IsPrimaryKey).ToList();
             
-            string createTable = $"IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='{name}' AND TABLE_SCHEMA = '{schema}')"
-                + $" CREATE TABLE {schema}.{name} ({ string.Join(",", pkeys.Select(c => ToColumn(c))) }, " +
-                 $"PRIMARY KEY( { string.Join(", ", pkeys.Select(x=> this.Escape(x.ColumnName) )) } ))";
+            string createTable = $" CREATE TABLE IF NOT EXISTS {table.EscapedFullName} ({ string.Join(",", pkeys.Select(c => ToColumn(c))) }, " +
+                 $"CONSTRAINT {table.Name}_pkey PRIMARY KEY( { string.Join(", ", pkeys.Select(x=> this.Escape(x.ColumnName) )) } ))";
 
             Run(createTable);
 
-            var destColumns = GetCommonSchema(name);
+            var destColumns = GetCommonSchema(table);
 
             List<SqlColumn> columnsToAdd = new List<SqlColumn>();
 
@@ -103,7 +107,7 @@ namespace NeuroSpeech.EFCoreLiveMigration.PostGreSql
                         continue;
                     }
 
-                    Run($"EXEC sp_rename '{name}.{dest.ColumnName}', '{column.ColumnName}'");
+                    Run(RenameColumn(table, dest.ColumnName, column.ColumnName));
                     dest.ColumnName = column.ColumnName;
                     
                 }
@@ -117,16 +121,16 @@ namespace NeuroSpeech.EFCoreLiveMigration.PostGreSql
 
                 column.CopyFrom = $"{dest.ColumnName}_{m}";
 
-                Run($"EXEC sp_rename '{name}.{dest.ColumnName}', '{column.CopyFrom}'");
+                Run(RenameColumn(table, dest.ColumnName, column.CopyFrom));
 
             }
 
             foreach (var column in columnsToAdd)
             {
-                Run($"ALTER TABLE {name} ADD " + ToColumn(column));
+                Run($"ALTER TABLE {table.EscapedFullName} ADD " + ToColumn(column));
             }
 
-            Console.WriteLine($"Table {name} sync complete");
+            Console.WriteLine($"Table {table} sync complete");
 
 
             var copies = columns.Where(x => x.CopyFrom != null).ToList();
@@ -134,7 +138,7 @@ namespace NeuroSpeech.EFCoreLiveMigration.PostGreSql
             if (copies.Any()) {
                 foreach (var copy in copies)
                 {
-                    var update = $"UPDATE {name} SET {this.Escape(copy.ColumnName)} = {this.Escape(copy.CopyFrom)};";
+                    var update = $"UPDATE {table.EscapedFullName} SET {this.Escape(copy.ColumnName)} = {this.Escape(copy.CopyFrom)};";
                     Run(update);
                 }
             }
@@ -182,7 +186,7 @@ namespace NeuroSpeech.EFCoreLiveMigration.PostGreSql
             {
                 //name += " PRIMARY KEY ";
                 if (c.IsIdentity) {
-                    name += " Identity ";
+                    name += " GENERATED ALWAYS AS IDENTITY ";
                 }
             }
             if (!string.IsNullOrWhiteSpace(c.ColumnDefault))
@@ -192,7 +196,7 @@ namespace NeuroSpeech.EFCoreLiveMigration.PostGreSql
             return name;
         }
 
-        protected override void SyncIndexes(string schema, string tableName, IEnumerable<IIndex> indexes)
+        protected override void SyncIndexes(in TableName table, IEnumerable<IIndex> indexes)
         {
 
 
@@ -201,15 +205,15 @@ namespace NeuroSpeech.EFCoreLiveMigration.PostGreSql
                 Columns = x.Properties.Select(p => p.GetColumnName()).ToArray()
             });
 
-            EnsureIndexes(tableName, allIndexes);
+            EnsureIndexes(in table, allIndexes);
 
 
             
         }
 
-        private void EnsureIndexes(string tableName, IEnumerable<SqlIndex> allIndexes)
+        private void EnsureIndexes(in TableName table, IEnumerable<SqlIndex> allIndexes)
         {
-            var destIndexes = GetIndexes(tableName);
+            var destIndexes = GetIndexes(table);
             foreach (var index in allIndexes)
             {
 
@@ -231,7 +235,7 @@ namespace NeuroSpeech.EFCoreLiveMigration.PostGreSql
                     var n = $"{name}_{System.DateTime.UtcNow.Ticks}";
 
                     Run($"EXEC sp_rename @FromName, @ToName, @Type", new Dictionary<string, object> {
-                        { "@FromName", tableName + "." + name },
+                        { "@FromName", table.EscapedFullName + "." + name },
                         { "@ToName", n},
                         { "@Type", "INDEX" }
                     });
@@ -239,17 +243,17 @@ namespace NeuroSpeech.EFCoreLiveMigration.PostGreSql
 
                 // lets create index...
 
-                Run($"CREATE NONCLUSTERED INDEX {name} ON {tableName} ({ newColumns })");
+                Run($"CREATE INDEX {name} ON {table.EscapedFullName} ({ newColumns })");
 
 
             }
         }
 
-        public override List<SqlIndex> GetIndexes(string name)
+        public override List<SqlIndex> GetIndexes(in TableName table)
         {
             List<SqlIndex> list = new List<SqlIndex>();
             using (var reader = Read(Scripts.SqlServerGetIndexes, new Dictionary<string, object> {
-                { "@TableName", name }
+                { "@TableName", table.Name }
             })) {
 
                 while (reader.Read()) {
@@ -272,7 +276,7 @@ namespace NeuroSpeech.EFCoreLiveMigration.PostGreSql
             return list;
         }
 
-        protected override void SyncIndexes(string schema, string tableName, IEnumerable<IForeignKey> fkeys)
+        protected override void SyncIndexes(in TableName table, IEnumerable<IForeignKey> fkeys)
         {
             var allIndexes = fkeys.Select(x => new SqlIndex
             {
@@ -280,7 +284,7 @@ namespace NeuroSpeech.EFCoreLiveMigration.PostGreSql
                 Columns = x.Properties.Select(p => p.GetColumnName()).ToArray()
             });
 
-            EnsureIndexes(tableName, allIndexes);
+            EnsureIndexes(table, allIndexes);
         }
     }
 }

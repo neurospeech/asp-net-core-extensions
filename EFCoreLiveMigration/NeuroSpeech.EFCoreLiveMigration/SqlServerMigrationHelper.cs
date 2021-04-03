@@ -8,15 +8,24 @@ using System.Threading.Tasks;
 
 namespace NeuroSpeech.EFCoreLiveMigration
 {
+
+    public class PostGreSqlColumn: SqlColumn
+    {
+
+    }
     internal class SqlServerMigrationHelper : MigrationHelper
     {
         public SqlServerMigrationHelper(DbContext context) : base(context)
         {
         }
 
+        protected override SqlColumn NewColumn() => new PostGreSqlColumn();
+
         public override string Escape(string name) => $"[{name}]";
 
-        public override DbCommand CreateCommand(string command, Dictionary<string, object> plist = null)
+        protected override string GetDefaultSchema() => "dbo";
+
+        public override DbCommand CreateCommand(string command, IEnumerable<KeyValuePair<string, object>> plist = null)
         {
             var cmd = context.Database.GetDbConnection().CreateCommand();
             cmd.CommandText = command;
@@ -34,20 +43,20 @@ namespace NeuroSpeech.EFCoreLiveMigration
             return cmd;
         }
 
-        public override List<SqlColumn> GetCommonSchema(string name)
+        public override List<SqlColumn> GetCommonSchema(in TableName table)
         {
 
 
             List<SqlColumn> columns = new List<SqlColumn>();
             string sqlColumns = Scripts.SqlServerGetSchema;
 
-            using (var reader = Read(sqlColumns, new Dictionary<string, object> { { "@TableName", name } }))
+            using (var reader = Read(sqlColumns, new Dictionary<string, object> { { "@TableName", table.Name } }))
             {
 
 
                 while (reader.Read())
                 {
-                    SqlColumn col = new SqlColumn();
+                    SqlColumn col = NewColumn();
 
                     col.ColumnName = reader.GetValue<string>("ColumnName");
                     col.IsPrimaryKey = reader.GetValue<bool>("IsPrimaryKey");
@@ -66,20 +75,19 @@ namespace NeuroSpeech.EFCoreLiveMigration
             return columns;
         }
 
-        public override void SyncSchema(string schema, string name, List<SqlColumn> columns)
+        public override void SyncSchema(in TableName table, List<SqlColumn> columns)
         {
 
-            schema = string.IsNullOrWhiteSpace(schema) ? "dbo" : schema;
 
             var pkeys = columns.Where(x => x.IsPrimaryKey).ToList();
             
-            string createTable = $"IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='{name}' AND TABLE_SCHEMA = '{schema}')"
-                + $" CREATE TABLE {schema}.{name} ({ string.Join(",", pkeys.Select(c => ToColumn(c))) }, " +
+            string createTable = $"IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='{table.Name}' AND TABLE_SCHEMA = '{table.Schema}')"
+                + $" CREATE TABLE {table.EscapedFullName} ({ string.Join(",", pkeys.Select(c => ToColumn(c))) }, " +
                  $"PRIMARY KEY( { string.Join(", ", pkeys.Select(x=> this.Escape(x.ColumnName) )) } ))";
 
             Run(createTable);
 
-            var destColumns = GetCommonSchema(name);
+            var destColumns = GetCommonSchema(table);
 
             List<SqlColumn> columnsToAdd = new List<SqlColumn>();
 
@@ -101,7 +109,7 @@ namespace NeuroSpeech.EFCoreLiveMigration
                         continue;
                     }
 
-                    Run($"EXEC sp_rename '{name}.{dest.ColumnName}', '{column.ColumnName}'");
+                    Run($"EXEC sp_rename '{table.EscapedName}.{dest.ColumnName}', '{column.ColumnName}'");
                     dest.ColumnName = column.ColumnName;
                     
                 }
@@ -115,16 +123,16 @@ namespace NeuroSpeech.EFCoreLiveMigration
 
                 column.CopyFrom = $"{dest.ColumnName}_{m}";
 
-                Run($"EXEC sp_rename '{name}.{dest.ColumnName}', '{column.CopyFrom}'");
+                Run($"EXEC sp_rename '{table.EscapedName}.{dest.ColumnName}', '{column.CopyFrom}'");
 
             }
 
             foreach (var column in columnsToAdd)
             {
-                Run($"ALTER TABLE {name} ADD " + ToColumn(column));
+                Run($"ALTER TABLE {table.EscapedName} ADD " + ToColumn(column));
             }
 
-            Console.WriteLine($"Table {name} sync complete");
+            Console.WriteLine($"Table {table} sync complete");
 
 
             var copies = columns.Where(x => x.CopyFrom != null).ToList();
@@ -132,7 +140,7 @@ namespace NeuroSpeech.EFCoreLiveMigration
             if (copies.Any()) {
                 foreach (var copy in copies)
                 {
-                    var update = $"UPDATE {name} SET {this.Escape(copy.ColumnName)} = {this.Escape(copy.CopyFrom)};";
+                    var update = $"UPDATE {table.EscapedFullName} SET {this.Escape(copy.ColumnName)} = {this.Escape(copy.CopyFrom)};";
                     Run(update);
                 }
             }
@@ -190,7 +198,7 @@ namespace NeuroSpeech.EFCoreLiveMigration
             return name;
         }
 
-        internal override void SyncIndexes(string schema, string tableName, IEnumerable<IIndex> indexes)
+        protected override void SyncIndexes(in TableName table, IEnumerable<IIndex> indexes)
         {
 
 
@@ -199,15 +207,15 @@ namespace NeuroSpeech.EFCoreLiveMigration
                 Columns = x.Properties.Select(p => p.GetColumnName()).ToArray()
             });
 
-            EnsureIndexes(tableName, allIndexes);
+            EnsureIndexes(table, allIndexes);
 
 
             
         }
 
-        private void EnsureIndexes(string tableName, IEnumerable<SqlIndex> allIndexes)
+        private void EnsureIndexes(in TableName table, IEnumerable<SqlIndex> allIndexes)
         {
-            var destIndexes = GetIndexes(tableName);
+            var destIndexes = GetIndexes(table);
             foreach (var index in allIndexes)
             {
 
@@ -229,7 +237,7 @@ namespace NeuroSpeech.EFCoreLiveMigration
                     var n = $"{name}_{System.DateTime.UtcNow.Ticks}";
 
                     Run($"EXEC sp_rename @FromName, @ToName, @Type", new Dictionary<string, object> {
-                        { "@FromName", tableName + "." + name },
+                        { "@FromName", table.EscapedName + "." + name },
                         { "@ToName", n},
                         { "@Type", "INDEX" }
                     });
@@ -237,17 +245,17 @@ namespace NeuroSpeech.EFCoreLiveMigration
 
                 // lets create index...
 
-                Run($"CREATE NONCLUSTERED INDEX {name} ON {tableName} ({ newColumns })");
+                Run($"CREATE NONCLUSTERED INDEX {name} ON {table.EscapedFullName} ({ newColumns })");
 
 
             }
         }
 
-        public override List<SqlIndex> GetIndexes(string name)
+        public override List<SqlIndex> GetIndexes(in TableName table)
         {
             List<SqlIndex> list = new List<SqlIndex>();
             using (var reader = Read(Scripts.SqlServerGetIndexes, new Dictionary<string, object> {
-                { "@TableName", name }
+                { "@TableName", table.Name }
             })) {
 
                 while (reader.Read()) {
@@ -270,7 +278,7 @@ namespace NeuroSpeech.EFCoreLiveMigration
             return list;
         }
 
-        internal override void SyncIndexes(string schema, string tableName, IEnumerable<IForeignKey> fkeys)
+        protected override void SyncIndexes(in TableName table, IEnumerable<IForeignKey> fkeys)
         {
             var allIndexes = fkeys.Select(x => new SqlIndex
             {
@@ -278,7 +286,7 @@ namespace NeuroSpeech.EFCoreLiveMigration
                 Columns = x.Properties.Select(p => p.GetColumnName()).ToArray()
             });
 
-            EnsureIndexes(tableName, allIndexes);
+            EnsureIndexes(table, allIndexes);
         }
     }
 }

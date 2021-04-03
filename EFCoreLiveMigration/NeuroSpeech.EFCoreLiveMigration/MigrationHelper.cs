@@ -12,9 +12,30 @@ using System.Reflection;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
+using NeuroSpeech.TemplatedQuery;
 
 namespace NeuroSpeech.EFCoreLiveMigration
 {
+
+    public struct TableName
+    {
+        public readonly string Schema;
+        public readonly string Name;
+        public readonly Literal EscapedSchema;
+        public readonly Literal EscapedName;
+        public readonly Literal EscapedFullName;
+
+        public TableName(string schema, string name, Func<string, string> escape)
+        {
+            this.Schema = schema;
+            this.Name = name;
+            this.EscapedSchema = new Literal( escape(schema));
+            this.EscapedName = new Literal(escape(name));
+            this.EscapedFullName = new Literal($"{escape(schema)}.{escape(name)}");
+        }
+
+
+    }
     public abstract class MigrationHelper
     {
         protected readonly DbContext context;
@@ -68,12 +89,16 @@ namespace NeuroSpeech.EFCoreLiveMigration
                         this.Transaction = tx;
 
                         // var mb = new MigrationBuilder(context.Database.ProviderName);
+                        var schema = entity.GetSchema();
+                        var table = new TableName(
+                            string.IsNullOrWhiteSpace(schema) ? GetDefaultSchema() : schema, 
+                            entity.GetTableName(), Escape);
 
-                        SyncSchema(entity.GetSchema(), entity.GetTableName(), columns);
+                        SyncSchema(in table, columns);
 
-                        SyncIndexes(entity.GetSchema(), entity.GetTableName(), indexes);
+                        SyncIndexes(in table, indexes);
 
-                        SyncIndexes(entity.GetSchema(), entity.GetTableName(), fkeys);
+                        SyncIndexes(in table, fkeys);
 
                         //var sp = (context as IInfrastructure<IServiceProvider>);
 
@@ -100,22 +125,24 @@ namespace NeuroSpeech.EFCoreLiveMigration
 
         }
 
-        protected abstract void SyncIndexes(string schema, string tableName, IEnumerable<IForeignKey> fkeys);
-        protected abstract void SyncIndexes(string schema, string tableName, IEnumerable<IIndex> indexes);
+        protected abstract void SyncIndexes(in TableName table, IEnumerable<IForeignKey> fkeys);
+        protected abstract void SyncIndexes(in TableName table, IEnumerable<IIndex> indexes);
+
+        protected abstract string GetDefaultSchema();
+
+        protected virtual SqlColumn NewColumn() => new SqlColumn();
 
         private SqlColumn CreateColumn(IProperty x)
         {
-            var r = new SqlColumn
-            {
-                CLRType = x.ClrType,
-                ColumnDefault = x.GetDefaultValueSql(),
-                ColumnName = x.GetColumnName(),
-                DataLength = x.GetMaxLength() ?? 0,
-                DataType = x.GetColumnTypeForSql(),
-                IsNullable = x.IsNullable,
-                IsPrimaryKey = x.IsPrimaryKey()
-            };
+            var r = NewColumn();
 
+            r.CLRType = x.ClrType;
+            r.ColumnDefault = x.GetDefaultValueSql();
+            r.ColumnName = x.GetColumnName();
+            r.DataLength = x.GetMaxLength() ?? 0;
+            r.DataType = x.GetColumnTypeForSql();
+            r.IsNullable = x.IsNullable;
+            r.IsPrimaryKey = x.IsPrimaryKey();
 
             r.OldNames = x.GetOldNames();
 
@@ -132,7 +159,12 @@ namespace NeuroSpeech.EFCoreLiveMigration
 
         public abstract string Escape(string name);
 
-        public abstract DbCommand CreateCommand(String command, Dictionary<string, object> plist = null);
+        public abstract DbCommand CreateCommand(String command, IEnumerable<KeyValuePair<string,object>> plist = null);
+
+        public int Run(TemplateQuery query)
+        {
+            return context.ExecuteNonQuery(query);
+        }
 
         public int Run(string command, Dictionary<string, object> plist = null)
         {
@@ -149,16 +181,23 @@ namespace NeuroSpeech.EFCoreLiveMigration
             }
         }
 
+        public SqlRowSet Read(TemplateQuery query)
+        {
+            var cmd = CreateCommand(query.Text, query.Values);
+            return new SqlRowSet(cmd, cmd.ExecuteReader());
+        }
+
+
         public SqlRowSet Read(string command, Dictionary<string, object> plist)
         {
             var cmd = CreateCommand(command, plist);
             return new SqlRowSet(cmd, cmd.ExecuteReader());
         }
 
-        public abstract List<SqlColumn> GetCommonSchema(string name);
-        public abstract void SyncSchema(string schema, string table, List<SqlColumn> schemaTable);
+        public abstract List<SqlColumn> GetCommonSchema(in TableName table);
+        public abstract void SyncSchema(in TableName table, List<SqlColumn> schemaTable);
 
-        public abstract List<SqlIndex> GetIndexes(string name);
+        public abstract List<SqlIndex> GetIndexes(in TableName table);
 
 
     }

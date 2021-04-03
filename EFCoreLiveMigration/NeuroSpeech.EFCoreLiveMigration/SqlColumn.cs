@@ -19,7 +19,7 @@ namespace NeuroSpeech.EFCoreLiveMigration
         public decimal? NumericPrecision { get; set; }
 
 
-        public string DataType { get; set; }
+        public virtual string DataType { get; set; }
 
         public int DataLength { get; set; }
 
