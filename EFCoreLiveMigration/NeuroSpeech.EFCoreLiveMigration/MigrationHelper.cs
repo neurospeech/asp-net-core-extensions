@@ -34,6 +34,10 @@ namespace NeuroSpeech.EFCoreLiveMigration
             this.EscapedFullName = new Literal($"{escape(schema)}.{escape(name)}");
         }
 
+        public override string ToString()
+        {
+            return EscapedFullName.Value;
+        }
 
     }
     public abstract class MigrationHelper

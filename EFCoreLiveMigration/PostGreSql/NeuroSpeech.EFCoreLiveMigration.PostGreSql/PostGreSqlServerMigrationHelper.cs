@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
+using NeuroSpeech.TemplatedQuery;
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
@@ -23,7 +24,8 @@ namespace NeuroSpeech.EFCoreLiveMigration.PostGreSql
             return $"ALTER TABLE {table.EscapedFullName} RENAME {Escape(oldName)} TO {Escape(newName)}";
         }
 
-        public override string Escape(string name) => $"\"{name}\"";
+        public override string Escape(string name) => 
+            $"\"{name.Trim('\"')}\"";
 
         public override DbCommand CreateCommand(string command, IEnumerable<KeyValuePair<string, object>> plist = null)
         {
@@ -60,7 +62,7 @@ namespace NeuroSpeech.EFCoreLiveMigration.PostGreSql
 
                     col.ColumnName = reader.GetValue<string>("ColumnName");
                     col.IsPrimaryKey = reader.GetValue<bool>("IsPrimaryKey");
-                    col.IsNullable = reader.GetValue<string>("IsNullable") == "YES";
+                    col.IsNullable = reader.GetValue<bool>("IsNullable");
                     col.ColumnDefault = reader.GetValue<string>("ColumnDefault");
                     col.DataType = reader.GetValue<string>("DataType");
                     col.DataLength = reader.GetValue<int>("DataLength");
@@ -101,8 +103,6 @@ namespace NeuroSpeech.EFCoreLiveMigration.PostGreSql
 
                     if (dest == null)
                     {
-
-
                         columnsToAdd.Add(column);
                         continue;
                     }
@@ -144,11 +144,11 @@ namespace NeuroSpeech.EFCoreLiveMigration.PostGreSql
             }
         }
 
-        private static string[] textTypes = new[] { "nvarchar", "varchar" };
+        private static string[] textTypes = new[] { "character varying", "varchar" };
 
         private static bool IsText(string n) => textTypes.Any(a => a.Equals(n, StringComparison.OrdinalIgnoreCase));
 
-        private static bool IsDecimal(string n) => n.Equals("decimal", StringComparison.OrdinalIgnoreCase);
+        private static bool IsDecimal(string n) => n.Equals("numeric", StringComparison.OrdinalIgnoreCase);
 
         private string ToColumn(SqlColumn c)
         {
@@ -176,7 +176,7 @@ namespace NeuroSpeech.EFCoreLiveMigration.PostGreSql
                 // lets allow nullable to every field...
                 if (c.IsNullable)
                 {
-                    name += " NULL ";
+                    // name += " NULL ";
                 }
                 else {
                     name += " NOT NULL ";
@@ -220,25 +220,28 @@ namespace NeuroSpeech.EFCoreLiveMigration.PostGreSql
                 var name = index.Name;
                 var columns = index.Columns;
 
-                var newColumns = columns.Select(x => $"{x} ASC").ToJoinString();
+                var newColumns = columns.Select(x => $"{Escape(x)}").ToJoinString();
 
-                var existing = destIndexes.FirstOrDefault(x => x.Name == name);
+                var existing = destIndexes.FirstOrDefault(x => x.Name.EqualsIgnoreCase(name));
                 if (existing != null)
                 {
                     // see if all are ok...
-                    var existingColumns = existing.Columns.ToJoinString();
+                    var existingColumns = existing.Columns.ToJoinString(Escape);
 
                     if (existingColumns.EqualsIgnoreCase(newColumns))
                         continue;
 
                     // rename old index... 
-                    var n = $"{name}_{System.DateTime.UtcNow.Ticks}";
+                    //var n = $"{name}_{System.DateTime.UtcNow.Ticks}";
 
-                    Run($"EXEC sp_rename @FromName, @ToName, @Type", new Dictionary<string, object> {
-                        { "@FromName", table.EscapedFullName + "." + name },
-                        { "@ToName", n},
-                        { "@Type", "INDEX" }
-                    });
+                    //Run($"EXEC sp_rename @FromName, @ToName, @Type", new Dictionary<string, object> {
+                    //    { "@FromName", table.EscapedFullName + "." + name },
+                    //    { "@ToName", n},
+                    //    { "@Type", "INDEX" }
+                    //});
+
+                    /// delete old...
+                    Run(TemplatedQuery.TemplateQuery.New($"DROP INDEX IF EXISTS {Literal.DoubleQuoted(existing.Name)}"));
                 }
 
                 // lets create index...
@@ -269,7 +272,7 @@ namespace NeuroSpeech.EFCoreLiveMigration.PostGreSql
 
                 list = list.GroupBy(x => x.Name).Select(x => new SqlIndex {
                     Name = x.Key,
-                    Columns = x.SelectMany( c => c.Columns ).Select( c => $"[{c}]" ).ToArray()
+                    Columns = x.SelectMany( c => c.Columns ).Select( c => Escape(c) ).ToArray()
                 }).ToList();
 
             }

@@ -10,7 +10,7 @@ namespace NeuroSpeech.EFCoreLiveMigration.PostGreSql
 ISC.ordinal_position as Ordinal,
 ISC.column_name as ColumnName,
 ISC.column_default as ColumnDefault,
-(ISC.is_nullable = 'YES') as IsNullable,
+(ISC.is_nullable <> 'NO') as IsNullable,
 ISC.data_type as DataType,
 ISC.character_maximum_length as DataLength,
 ISC.numeric_precision as NumericPrecision,

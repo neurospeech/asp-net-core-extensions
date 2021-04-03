@@ -48,6 +48,13 @@ namespace NeuroSpeech.EFCoreLiveMigration
             return string.Join(separator, list);
         }
 
-        
+        public static string ToJoinString(
+            this IEnumerable<string> list, 
+            Func<string,string> escape,
+            string separator = ", ")
+        {
+            return string.Join(separator, list.Select(x => escape(x)));
+        }
+
     }
 }
