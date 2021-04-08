@@ -59,6 +59,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PostGreSqlLiveMigrationCons
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSpeech.EFCoreLiveMigration.PostGreSql", "EFCoreLiveMigration\PostGreSql\NeuroSpeech.EFCoreLiveMigration.PostGreSql\NeuroSpeech.EFCoreLiveMigration.PostGreSql.csproj", "{EA5C4FA0-4E2F-401D-9EE6-F98E69893B01}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NeuroSpeech.ESDetector", "NeuroSpeech.ESDetector\NeuroSpeech.ESDetector.csproj", "{49AE11B8-F6A9-4E33-ABD0-7A3BFC346634}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -129,6 +131,10 @@ Global
 		{EA5C4FA0-4E2F-401D-9EE6-F98E69893B01}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EA5C4FA0-4E2F-401D-9EE6-F98E69893B01}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EA5C4FA0-4E2F-401D-9EE6-F98E69893B01}.Release|Any CPU.Build.0 = Release|Any CPU
+		{49AE11B8-F6A9-4E33-ABD0-7A3BFC346634}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{49AE11B8-F6A9-4E33-ABD0-7A3BFC346634}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{49AE11B8-F6A9-4E33-ABD0-7A3BFC346634}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{49AE11B8-F6A9-4E33-ABD0-7A3BFC346634}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -151,6 +157,7 @@ Global
 		{E376A297-E453-4644-8904-107C8B9F1210} = {EE57ED11-49D2-4D8F-BA62-5EA90A1C0754}
 		{6140BA14-CFB5-44EF-B2D2-A480F678C4D5} = {E376A297-E453-4644-8904-107C8B9F1210}
 		{EA5C4FA0-4E2F-401D-9EE6-F98E69893B01} = {E376A297-E453-4644-8904-107C8B9F1210}
+		{49AE11B8-F6A9-4E33-ABD0-7A3BFC346634} = {FA937D44-8531-46C8-B79C-28E1E2ACE98D}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {65594421-E05B-4646-94E0-260254DC3212}

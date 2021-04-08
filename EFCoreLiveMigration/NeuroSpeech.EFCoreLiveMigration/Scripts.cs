@@ -11,7 +11,7 @@ namespace NeuroSpeech.EFCoreLiveMigration
 			IC.ORDINAL_POSITION as Ordinal,
 			IC.COLUMN_NAME as ColumnName, 
 			IC.COLUMN_DEFAULT as ColumnDefault, 
-			(IC.IS_NULLABLE = 'YES') as IsNullable, 
+			(CASE IC.IS_NULLABLE WHEN 'YES' THEN 1 ELSE 0 END) as IsNullable, 
 			IC.DATA_TYPE as DataType,
 			IC.CHARACTER_MAXIMUM_LENGTH as DataLength,
 			IC.NUMERIC_PRECISION as NumericPrecision, 
