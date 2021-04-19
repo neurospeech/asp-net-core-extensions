@@ -60,40 +60,45 @@ namespace NeuroSpeech
         /// </summary>
         /// <param name="services"></param>
         /// <param name="assembly"></param>
-        public static void RegisterAssembly(this IServiceCollection services, Assembly assembly)
+        public static void RegisterAssembly(
+            this IServiceCollection services,
+            Assembly assembly,
+            Func<Type, DIRegisterAttribute> getRegisterAttribute = null)
         {
+
+            getRegisterAttribute = getRegisterAttribute ?? ((t) => t.GetCustomAttribute<DIRegisterAttribute>());
 
             foreach (var type in assembly.GetExportedTypes())
             {
 
                 try
                 {
-                    var a = type.GetCustomAttribute<DIRegisterAttribute>();
-                    if (a != null)
+                    var a = getRegisterAttribute?.Invoke(type);
+                    if (a == null)
+                        continue;
+
+                    Type baseType = a.BaseType;
+
+                    Func<IServiceProvider, object> factory = null;
+                    if (a.Factory != null)
                     {
-                        Type baseType = a.BaseType;
+                        BaseDIFactory f = Activator.CreateInstance(a.Factory) as BaseDIFactory;
+                        factory = (sp) => f.CreateService(sp);
+                    }
 
-                        Func<IServiceProvider, object> factory = null;
-                        if (a.Factory != null)
+                    if (baseType != null)
+                    {
+                        services.Add(new ServiceDescriptor(baseType, type, a.Type));
+                    }
+                    else
+                    {
+                        if (factory != null)
                         {
-                            BaseDIFactory f = Activator.CreateInstance(a.Factory) as BaseDIFactory;
-                            factory = (sp) => f.CreateService(sp);
-                        }
-
-                        if (baseType != null)
-                        {
-                            services.Add(new ServiceDescriptor(baseType, type, a.Type));
+                            services.Add(new ServiceDescriptor(type, factory, a.Type));
                         }
                         else
                         {
-                            if (factory != null)
-                            {
-                                services.Add(new ServiceDescriptor(type, factory, a.Type));
-                            }
-                            else
-                            {
-                                services.Add(new ServiceDescriptor(type,type, a.Type));
-                            }
+                            services.Add(new ServiceDescriptor(type, type, a.Type));
                         }
                     }
                 }
