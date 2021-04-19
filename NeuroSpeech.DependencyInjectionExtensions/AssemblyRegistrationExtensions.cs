@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 
 namespace NeuroSpeech
 {
+
     [ExcludeFromCodeCoverage]
     public static class AssemblyRegistrationExtensions
     {
