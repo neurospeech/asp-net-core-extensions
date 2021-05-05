@@ -77,7 +77,7 @@ namespace NeuroSpeech
     [ExcludeFromCodeCoverage]
     public static class AssemblyRegistrationExtensions
     {
-        public static void RegisterApplicationParts(this IMvcBuilder mvcBuilder, AssemblyRegistrationList list, params Assembly[] other )
+        public static IMvcBuilder RegisterApplicationParts(this IMvcBuilder mvcBuilder, AssemblyRegistrationList list, params Assembly[] other )
         {
             foreach(var o in other)
             {
@@ -87,6 +87,7 @@ namespace NeuroSpeech
             {
                 mvcBuilder.AddApplicationPart(a);
             }
+            return mvcBuilder;
         }
         public static AssemblyRegistrationList RegisterAssemblies(this IServiceCollection services, AppDomain domain = null)
         {
