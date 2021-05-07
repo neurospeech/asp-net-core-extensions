@@ -3,6 +3,7 @@ using DurableTask.Core;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace NeuroSpeech.Workflows
@@ -48,6 +49,23 @@ namespace NeuroSpeech.Workflows
         }
 
         public abstract Task<TOutput> RunTask(TInput input);
+
+        /// <summary>
+        /// Creates a waitable timer for given delay
+        /// </summary>
+        /// <param name="wait"></param>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        public async Task Delay(TimeSpan wait, CancellationToken token = default)
+        {
+            if (wait.TotalMilliseconds <= 0)
+                throw new ArgumentOutOfRangeException($"Cannot create timer for time in the past");
+            try
+            {
+                await context!.CreateTimer(context.CurrentUtcDateTime.Add(wait), true, token);
+            }catch (TaskCanceledException) {
+            }
+        }
 
         protected Task<TR> CallTaskAsync<TI, TActivity, TR>(TI input)
         {
