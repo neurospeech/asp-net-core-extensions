@@ -69,12 +69,16 @@ namespace NeuroSpeech.Workflows
 
         protected Task<TR> CallTaskAsync<TI, TActivity, TR>(TI input)
         {
-            return context!.ScheduleTask<TR>(typeof(TActivity), input);
+            if (context == null)
+                throw new InvalidOperationException($"You cannot call another activity from activity");
+            return context.ScheduleTask<TR>(typeof(TActivity), input);
         }
 
         protected async Task<(string? result, bool timedOut)> WaitForEventStringAsync(string name, TimeSpan delay)
         {
-            TaskCompletionSource<string>? wait = null;
+            if (context == null)
+                throw new InvalidOperationException("You can not wait for an event inside an activity");
+            TaskCompletionSource<string> wait;
             try
             {
                 if (delay.TotalMilliseconds <= 0)
@@ -86,7 +90,7 @@ namespace NeuroSpeech.Workflows
                     return (await wait.Task, false);
 
                 var ct = new System.Threading.CancellationTokenSource();
-                var timer = context!.CreateTimer<bool>(context.CurrentUtcDateTime.Add(delay), true, ct.Token);
+                var timer = context.CreateTimer<bool>(context.CurrentUtcDateTime.Add(delay), true, ct.Token);
 
                 await Task.WhenAny(timer, wait.Task);
 
