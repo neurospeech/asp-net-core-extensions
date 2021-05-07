@@ -65,7 +65,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSpeech.AppCache", "Neu
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSpeech.DependencyInjectionExtensions", "NeuroSpeech.DependencyInjectionExtensions\NeuroSpeech.DependencyInjectionExtensions.csproj", "{6A2A12A5-3EC8-479A-B307-8013F6F00DD6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NeuroSpeech.IOExtensions", "NeuroSpeech.IOExtensions\NeuroSpeech.IOExtensions.csproj", "{2A5AF3E1-F188-46C4-9B3F-0B092DE7BBEF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSpeech.IOExtensions", "NeuroSpeech.IOExtensions\NeuroSpeech.IOExtensions.csproj", "{2A5AF3E1-F188-46C4-9B3F-0B092DE7BBEF}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Workflows", "Workflows", "{1BECAAB5-DE53-4F61-9655-EB746F209E14}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSpeech.Workflows", "NeuroSpeech.Workflows\NeuroSpeech.Workflows.csproj", "{9BEFAC8E-3F9F-4006-B6E9-7E8A41C797D1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -153,6 +157,10 @@ Global
 		{2A5AF3E1-F188-46C4-9B3F-0B092DE7BBEF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2A5AF3E1-F188-46C4-9B3F-0B092DE7BBEF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2A5AF3E1-F188-46C4-9B3F-0B092DE7BBEF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9BEFAC8E-3F9F-4006-B6E9-7E8A41C797D1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9BEFAC8E-3F9F-4006-B6E9-7E8A41C797D1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9BEFAC8E-3F9F-4006-B6E9-7E8A41C797D1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9BEFAC8E-3F9F-4006-B6E9-7E8A41C797D1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -179,6 +187,7 @@ Global
 		{13F34F18-439A-4D85-B391-52D2BBF32D08} = {FA937D44-8531-46C8-B79C-28E1E2ACE98D}
 		{6A2A12A5-3EC8-479A-B307-8013F6F00DD6} = {FA937D44-8531-46C8-B79C-28E1E2ACE98D}
 		{2A5AF3E1-F188-46C4-9B3F-0B092DE7BBEF} = {FA937D44-8531-46C8-B79C-28E1E2ACE98D}
+		{9BEFAC8E-3F9F-4006-B6E9-7E8A41C797D1} = {1BECAAB5-DE53-4F61-9655-EB746F209E14}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {65594421-E05B-4646-94E0-260254DC3212}
