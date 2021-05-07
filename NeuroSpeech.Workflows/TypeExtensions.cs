@@ -17,6 +17,19 @@ namespace NeuroSpeech.Workflows
             return (ta[0], ta[1]);
         }
 
+        public static Type GetArgument(this Type type, Type genericType)
+        {
+            while (!type.IsConstructedGenericType)
+            {
+                type = type.BaseType;
+                if (type == null)
+                    break;
+            }
+            if(type == null || type.GetGenericTypeDefinition() != genericType)
+                throw new InvalidOperationException($"{type} does not construct {genericType}");
+            return type.GetGenericArguments()[0];
+        }
+
         public static string GetFriendlyName(this Type type)
         {
             if (type.IsArray)

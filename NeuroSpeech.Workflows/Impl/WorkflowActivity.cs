@@ -18,7 +18,6 @@ namespace NeuroSpeech.Workflows.Impl
         public TaskContext taskContext;
 
 
-
         protected override async Task<TOutput> ExecuteAsync(TaskContext context, TInput input)
         {
             taskContext = context;

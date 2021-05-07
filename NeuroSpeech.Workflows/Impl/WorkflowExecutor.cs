@@ -24,18 +24,7 @@ namespace NeuroSpeech.Workflows.Impl
         public override void OnEvent(OrchestrationContext context, string name, string input)
         {
             workflow.context = context;
-            foreach(var f in workflow.GetType().GetFields())
-            {
-                if(f.Name == name)
-                {
-                    if(f.GetValue(workflow) is IWorkflowEvent iwf)
-                    {
-                        iwf.SetEvent(input);
-                        return;
-                    }
-                    throw new NotSupportedException();
-                }
-            }
+            workflow.GetTaskCompletionSource(name).TrySetResult(input);
         }
     }
 }

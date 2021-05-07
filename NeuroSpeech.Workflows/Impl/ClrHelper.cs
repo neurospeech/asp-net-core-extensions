@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace NeuroSpeech.Workflows.Impl
 {
@@ -55,9 +56,17 @@ namespace NeuroSpeech.Workflows.Impl
             {
                 if (!method.IsVirtual)
                     continue;
-                var a = method.GetCustomAttribute<ActivityAttribute>();
-                if (a == null)
+
+                var e = method.GetCustomAttribute<EventAttribute>();
+                if(e != null) {
+                    CreateEvent(dt, method, e);
                     continue;
+                }
+
+                var a = method.GetCustomAttribute<ActivityAttribute>();
+                if (a == null) {
+                    continue;
+                }
 
                 var at = CreateMethod(dt, method);
                 types[at.FullName] = (at, method);
@@ -72,6 +81,46 @@ namespace NeuroSpeech.Workflows.Impl
             types[type.FullName] = (wrapper, null);
 
             return (Search, type.FullName, activities.ToArray());
+        }
+
+        private void CreateEvent(TypeBuilder type, MethodInfo method, EventAttribute e)
+        {
+            var pa = method.GetParameters().Select(p => p.ParameterType).ToArray();
+
+            var om = type.DefineMethod(method.Name,
+                MethodAttributes.Public
+                | MethodAttributes.HideBySig
+                | MethodAttributes.Virtual,
+                method.CallingConvention,
+                method.ReturnType,
+                pa);
+
+            // event type should be Task<EventResult<TR>>
+            var returnTypeParameter = method.ReturnType
+                .GetArgument(typeof(Task<>))
+                .GetArgument(typeof(EventResult<>));
+
+            type.DefineMethodOverride(om, method);
+
+            var methodName = pa.Length == 0 ? "WaitForEventAsync" : "WaitForEventDelayAsync";
+
+            var callTask = type
+                .BaseType
+                .BaseType
+                .GetMethods(BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.FlattenHierarchy)
+                    .First(m => m.Name == methodName)
+                .MakeGenericMethod(returnTypeParameter);
+
+            var il = om.GetILGenerator();
+            il.Emit(OpCodes.Ldarg_0);
+            il.Emit(OpCodes.Ldstr, e.Name ?? method.Name);
+            if(pa.Length >0)
+            {
+                il.Emit(OpCodes.Ldarg_1);
+            }
+            il.Emit(OpCodes.Callvirt, callTask);
+            il.Emit(OpCodes.Ret);
+
         }
 
         private Type CreateMethod(TypeBuilder type, MethodInfo method)
