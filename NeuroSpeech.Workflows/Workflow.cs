@@ -35,6 +35,12 @@ namespace NeuroSpeech.Workflows
 
     public abstract class Workflow<TInput, TOutput>
     {
+
+        public static Task<OrchestrationInstance> Queue<T>(TaskHubClient client, TInput input)
+        {
+            return client.CreateOrchestrationInstanceAsync(typeof(T), input);
+        }
+
         public OrchestrationContext? context;
 
         private Dictionary<string, TaskCompletionSource<string>> waitTasks 

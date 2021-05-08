@@ -22,41 +22,48 @@ namespace NeuroSpeech.Workflows.Impl
         protected override async Task<TOutput> ExecuteAsync(TaskContext context, TInput input)
         {
             taskContext = context;
-            using (var scope = sp.CreateScope())
+            try
             {
-                var proxy = Activator.CreateInstance<T>();
-                var pa = method.GetParameters();
-                var args = new object[pa.Length];
-                int i;
-                int specifiedParameterCount = argList.Length;
-                for (i = 0; i < specifiedParameterCount; i++)
+                using (var scope = sp.CreateScope())
                 {
-                    if(specifiedParameterCount == 1)
+                    var proxy = Activator.CreateInstance<T>();
+                    var pa = method.GetParameters();
+                    var args = new object[pa.Length];
+                    int i;
+                    int specifiedParameterCount = argList.Length;
+                    for (i = 0; i < specifiedParameterCount; i++)
                     {
-                        args[i] = input;
-                        continue;
+                        if (specifiedParameterCount == 1)
+                        {
+                            args[i] = input;
+                            continue;
+                        }
+                        //input is tuple...
+                        args[i] = input.GetType().GetProperty($"Item{i + 1}").GetValue(input);
                     }
-                    //input is tuple...
-                    args[i] = input.GetType().GetProperty($"Item{i + 1}").GetValue(input);
-                }
-                for (; i < pa.Length; i++)
-                {
-                    var p = pa[i];
-                    if (typeof(IServiceProvider).IsAssignableFrom(p.ParameterType))
+                    for (; i < pa.Length; i++)
                     {
-                        args[i] = scope.ServiceProvider;
-                        continue;
+                        var p = pa[i];
+                        if (typeof(IServiceProvider).IsAssignableFrom(p.ParameterType))
+                        {
+                            args[i] = scope.ServiceProvider;
+                            continue;
+                        }
+                        if (typeof(TaskContext).IsAssignableFrom(p.ParameterType))
+                        {
+                            args[i] = context;
+                            continue;
+                        }
+                        args[i] = scope.ServiceProvider.GetRequiredService(p.ParameterType);
                     }
-                    if(typeof(TaskContext).IsAssignableFrom(p.ParameterType))
-                    {
-                        args[i] = context;
-                        continue;
-                    }
-                    args[i] = scope.ServiceProvider.GetRequiredService(p.ParameterType);
-                }
 
-                var task = (Task<TOutput>)method.Invoke(proxy, args);
-                return await task;
+                    var task = (Task<TOutput>)method.Invoke(proxy, args);
+                    return await task;
+                }
+            } catch (Exception ex)
+            {
+                // DTX swallows exception details...
+                throw new InvalidOperationException(ex.ToString());
             }
         }
 
