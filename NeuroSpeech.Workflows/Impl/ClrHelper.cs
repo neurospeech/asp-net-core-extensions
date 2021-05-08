@@ -28,7 +28,8 @@ namespace NeuroSpeech.Workflows.Impl
 
         public (Func<string, IServiceProvider, object> factory, string derived, Type[] activities) Factory(Type type)
         {
-            Dictionary<string, (Type type, MethodInfo method)> types = new Dictionary<string, (Type, MethodInfo)>();
+            Dictionary<string, (Type type, MethodInfo method, Type[] argList)> types 
+                = new Dictionary<string, (Type, MethodInfo, Type[])>();
 
             object Search(string name, IServiceProvider sp)
             {
@@ -40,7 +41,7 @@ namespace NeuroSpeech.Workflows.Impl
                 }
 
                 var activity =  Activator.CreateInstance(t.type) as IWorkflowActivityInit;
-                activity.Set(sp, t.method);
+                activity.Set(sp, t.method, t.argList);
                 return activity;
             }
 
@@ -68,8 +69,8 @@ namespace NeuroSpeech.Workflows.Impl
                     continue;
                 }
 
-                var at = CreateMethod(dt, method);
-                types[at.FullName] = (at, method);
+                var (at, argList) = CreateMethod(dt, method);
+                types[at.FullName] = (at, method, argList);
                 activities.Add(at);
             }
 
@@ -78,7 +79,7 @@ namespace NeuroSpeech.Workflows.Impl
             var (inputType, outputType) = type.Get2GenericArguments();
 
             var wrapper = typeof(WorkflowExecutor<,,>).MakeGenericType(innerClass, inputType, outputType);
-            types[type.FullName] = (wrapper, null);
+            types[type.FullName] = (wrapper, null, null);
 
             return (Search, type.FullName, activities.ToArray());
         }
@@ -123,15 +124,52 @@ namespace NeuroSpeech.Workflows.Impl
 
         }
 
-        private Type CreateMethod(TypeBuilder type, MethodInfo method)
+        private (Type type, Type[] argList) CreateMethod(TypeBuilder type, MethodInfo method)
         {
+            Type input;
+            bool isTuple = false;
+            var inputParameterList = method.GetParameters()
+                .Select(p => (Type: p.ParameterType, Attribute: p.GetCustomAttribute<InjectAttribute>()))
+                .Where(p => p.Attribute == null)
+                .ToList();
+            var argList = inputParameterList.Select(p => p.Type).ToArray();
+            var argCount = argList.Length;
 
-            Type activityType = CreateProxyClass(type, method);
+
+            if (argCount == 1)
+            {
+                input = inputParameterList[0].Type;
+            } else
+            {
+                isTuple = true;
+                input = argList.ToTuple();
+            }
+
+            Type activityType = CreateProxyClass(type, method, input);
             
 
             var pa = method.GetParameters().Select(p => p.ParameterType).ToArray();
 
-            var input = pa[0];
+
+
+            string methodName = "CallTaskAsync";
+
+            var rt = method.ReturnType.GetGenericArguments()[0];
+            Type[] relayParams = null;
+
+
+            if (inputParameterList.Count == 1)
+            {
+                relayParams = new Type[] { input, activityType, rt };
+            } else
+            {
+                // create tuple....
+                methodName = $"CallTupleAsync{argCount}";
+                relayParams = new Type[argCount + 2];
+                Array.Copy(argList, relayParams, argCount);
+                relayParams[argCount] = activityType;
+                relayParams[argCount + 1] = rt;
+            }
 
             var om = type.DefineMethod(method.Name, 
                 MethodAttributes.Public 
@@ -144,7 +182,6 @@ namespace NeuroSpeech.Workflows.Impl
             type.DefineMethodOverride(om, method);
 
 
-            var rt = method.ReturnType.GetGenericArguments()[0];
 
             var il = om.GetILGenerator();
             var fld = typeof(Workflow<,>).GetField("context");
@@ -152,36 +189,57 @@ namespace NeuroSpeech.Workflows.Impl
                 .BaseType
                 .BaseType
                 .GetMethods(BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.FlattenHierarchy)
-                    .First(m => m.Name == "CallTaskAsync")
-                .MakeGenericMethod(input, activityType, rt);
+                    .First(m => m.Name == methodName)
+                .MakeGenericMethod(relayParams);
 
             // load this...
             il.Emit(OpCodes.Ldarg_0);
-            
 
-            // load first argument
-            il.Emit(OpCodes.Ldarg_1);
+            if (isTuple)
+            {
+                for (int i = 0; i < argCount; i++)
+                {
+                    switch (i)
+                    {
+                        case 0:
+                            il.Emit(OpCodes.Ldarg_1);
+                            continue;
+                        case 1:
+                            il.Emit(OpCodes.Ldarg_2);
+                            continue;
+                        case 3:
+                            il.Emit(OpCodes.Ldarg_3);
+                            continue;
+                    }
+                    il.Emit(OpCodes.Ldarg_S, (short)(i + 1));
+                }
+            }
+            else
+            {
+
+                // load first argument
+                il.Emit(OpCodes.Ldarg_1);
+            }
 
             // execute method...
             il.Emit(OpCodes.Callvirt, callTask);
             il.Emit(OpCodes.Ret);
             
 
-            return activityType;
+            return (activityType, argList);
 
         }
 
-        private Type CreateProxyClass(TypeBuilder type, MethodInfo method)
+        private Type CreateProxyClass(TypeBuilder type, MethodInfo method, Type input)
         {
             var moduleBuilder = type.Module as ModuleBuilder;
             var rt = method.ReturnType.GetGenericArguments()[0];
-            var input = method.GetParameters()[0];
 
-            var pa = method.GetParameters();
+            // var pa = method.GetParameters();
 
             var workflowType = type.BaseType;
 
-            var baseType = typeof(WorkflowActivity<,,>).MakeGenericType(workflowType, input.ParameterType, rt);
+            var baseType = typeof(WorkflowActivity<,,>).MakeGenericType(workflowType, input, rt);
 
             type = moduleBuilder.DefineType(type.Name + "_" + method.Name + "_Activity",
                 TypeAttributes.Public | TypeAttributes.Class,

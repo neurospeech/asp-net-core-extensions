@@ -3,6 +3,7 @@ using DurableTask.Core;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -72,6 +73,59 @@ namespace NeuroSpeech.Workflows
             if (context == null)
                 throw new InvalidOperationException($"You cannot call another activity from activity");
             return context.ScheduleTask<TR>(typeof(TActivity), input);
+        }
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        protected Task<TR> CallTupleAsync2<T1, T2, TActivity, TR>(T1 i1, T2 i2)
+        {
+            if (context == null)
+                throw new InvalidOperationException($"You cannot call another activity from activity");
+            return context.ScheduleTask<TR>(typeof(TActivity), Tuple.Create(i1, i2));
+        }
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        protected Task<TR> CallTupleAsync3<T1, T2, T3, TActivity, TR>(T1 i1, T2 i2, T3 i3)
+        {
+            if (context == null)
+                throw new InvalidOperationException($"You cannot call another activity from activity");
+            return context.ScheduleTask<TR>(typeof(TActivity), Tuple.Create(i1, i2, i3));
+        }
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        protected Task<TR> CallTupleAsync4<T1, T2, T3, T4, TActivity, TR>(T1 i1, T2 i2, T3 i3, T4 i4)
+        {
+            if (context == null)
+                throw new InvalidOperationException($"You cannot call another activity from activity");
+            return context.ScheduleTask<TR>(typeof(TActivity), Tuple.Create(i1, i2, i3, i4));
+        }
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        protected Task<TR> CallTupleAsync5<T1, T2, T3, T4, T5, TActivity, TR>(T1 i1, T2 i2, T3 i3, T4 i4, T5 i5)
+        {
+            if (context == null)
+                throw new InvalidOperationException($"You cannot call another activity from activity");
+            return context.ScheduleTask<TR>(typeof(TActivity), Tuple.Create(i1, i2, i3, i4, i5));
+        }
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        protected Task<TR> CallTupleAsync6<T1, T2, T3, T4, T5, T6, TActivity, TR>(T1 i1, T2 i2, T3 i3, T4 i4, T5 i5, T6 i6)
+        {
+            if (context == null)
+                throw new InvalidOperationException($"You cannot call another activity from activity");
+            return context.ScheduleTask<TR>(typeof(TActivity), Tuple.Create(i1, i2, i3, i4, i5, i6));
+        }
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        protected Task<TR> CallTupleAsync7<T1, T2, T3, T4, T5, T6, T7, TActivity, TR>(T1 i1, T2 i2, T3 i3, T4 i4, T5 i5, T6 i6, T7 i7)
+        {
+            if (context == null)
+                throw new InvalidOperationException($"You cannot call another activity from activity");
+            return context.ScheduleTask<TR>(typeof(TActivity), Tuple.Create(i1, i2, i3, i4, i5, i6, i7));
+        }
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        protected Task<TR> CallTupleAsync8<T1, T2, T3, T4, T5, T6, T7, T8, TActivity, TR>(T1 i1, T2 i2, T3 i3, T4 i4, T5 i5, T6 i6, T7 i7, T8 i8)
+        {
+            if (context == null)
+                throw new InvalidOperationException($"You cannot call another activity from activity");
+            return context.ScheduleTask<TR>(typeof(TActivity), Tuple.Create(i1, i2, i3, i4, i5, i6, i7, i8));
         }
 
         protected async Task<(string? result, bool timedOut)> WaitForEventStringAsync(string name, TimeSpan delay)

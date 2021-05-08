@@ -8,13 +8,14 @@ namespace NeuroSpeech.Workflows.Impl
 {
     internal interface IWorkflowActivityInit
     {
-        void Set(IServiceProvider sp, MethodInfo method);
+        void Set(IServiceProvider sp, MethodInfo method, Type[] argList);
     }
 
     public class WorkflowActivity<T, TInput, TOutput>: TaskActivity<TInput, TOutput>, IWorkflowActivityInit
     {
         private IServiceProvider sp;
         private MethodInfo method;
+        private Type[] argList;
         public TaskContext taskContext;
 
 
@@ -26,17 +27,24 @@ namespace NeuroSpeech.Workflows.Impl
                 var proxy = Activator.CreateInstance<T>();
                 var pa = method.GetParameters();
                 var args = new object[pa.Length];
-                for (int i = 0; i < pa.Length; i++)
+                int i;
+                int specifiedParameterCount = argList.Length;
+                for (i = 0; i < specifiedParameterCount; i++)
+                {
+                    if(specifiedParameterCount == 1)
+                    {
+                        args[i] = input;
+                        continue;
+                    }
+                    //input is tuple...
+                    args[i] = input.GetType().GetProperty($"Item{i + 1}").GetValue(input);
+                }
+                for (; i < pa.Length; i++)
                 {
                     var p = pa[i];
                     if (typeof(IServiceProvider).IsAssignableFrom(p.ParameterType))
                     {
                         args[i] = scope.ServiceProvider;
-                        continue;
-                    }
-                    if (typeof(TInput).IsAssignableFrom(p.ParameterType))
-                    {
-                        args[i] = input;
                         continue;
                     }
                     if(typeof(TaskContext).IsAssignableFrom(p.ParameterType))
@@ -57,10 +65,11 @@ namespace NeuroSpeech.Workflows.Impl
             throw new NotImplementedException();
         }
 
-        void IWorkflowActivityInit.Set(IServiceProvider sp, MethodInfo method)
+        void IWorkflowActivityInit.Set(IServiceProvider sp, MethodInfo method, Type[] argList)
         {
             this.sp = sp;
             this.method = method;
+            this.argList = argList;
         }
     }
 }

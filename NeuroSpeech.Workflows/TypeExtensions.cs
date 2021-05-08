@@ -8,6 +8,30 @@ namespace NeuroSpeech.Workflows
     internal static class TypeExtensions
     {
 
+        public  static Type ToTuple(this Type[] types)
+        {
+            switch(types.Length)
+            {
+                case 1:
+                    throw new NotSupportedException();
+                case 2:
+                    return typeof(Tuple<,>).MakeGenericType(types);
+                case 3:
+                    return typeof(Tuple<,,>).MakeGenericType(types);
+                case 4:
+                    return typeof(Tuple<,,,>).MakeGenericType(types);
+                case 5:
+                    return typeof(Tuple<,,,,>).MakeGenericType(types);
+                case 6:
+                    return typeof(Tuple<,,,,,>).MakeGenericType(types);
+                case 7:
+                    return typeof(Tuple<,,,,,,>).MakeGenericType(types);
+                case 8:
+                    return typeof(Tuple<,,,,,,,>).MakeGenericType(types);
+            }
+            throw new NotSupportedException();
+        }
+
         public static (Type t1, Type t2) Get2GenericArguments(this Type type)
         {
             var bt = type;
