@@ -75,7 +75,7 @@ namespace NeuroSpeech.Workflows.Impl
                     continue;
                 }
                 // args[i] = scope.ServiceProvider.GetRequiredService(p.ParameterType);
-                arguments.Add(Expression.Call(sp, getRequiredService.MakeGenericMethod(p.ParameterType)));
+                arguments.Add(Expression.Call(null, getRequiredService.MakeGenericMethod(p.ParameterType), sp));
             }
 
             var call = Expression.Call(Expression.New(typeof(T)), method, arguments);
