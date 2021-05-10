@@ -16,6 +16,8 @@ namespace NeuroSpeech.Workflows.Impl
 
         public static ClrHelper Instance = new ClrHelper();
         private readonly ModuleBuilder moduleBuilder;
+        private readonly Dictionary<string, (Type type, MethodInfo method, Type[] argList)> types 
+            = new Dictionary<string, (Type type, MethodInfo method, Type[] argList)>();
         private int id = 0;
         
 
@@ -25,26 +27,22 @@ namespace NeuroSpeech.Workflows.Impl
             this.moduleBuilder = a.DefineDynamicModule("ClrWorkflows");
         }
 
+        public object Build(string name, IServiceProvider sp)
+        {
+            if (!types.TryGetValue(name, out var t))
+                throw new ArgumentException($"No type found for {name}");
+            if (t.method == null)
+            {
+                return sp.Build(t.type);
+            }
+
+            var activity = Activator.CreateInstance(t.type) as IWorkflowActivityInit;
+            activity.Set(sp, t.method, t.argList);
+            return activity;
+        }
 
         public (Func<string, IServiceProvider, object> factory, string derived, Type[] activities) Factory(Type type)
         {
-            Dictionary<string, (Type type, MethodInfo method, Type[] argList)> types 
-                = new Dictionary<string, (Type, MethodInfo, Type[])>();
-
-            object Search(string name, IServiceProvider sp)
-            {
-                if (!types.TryGetValue(name, out var t))
-                    throw new ArgumentException($"No type found for {name}");
-                if (t.method == null)
-                {
-                    return sp.Build(t.type);
-                }
-
-                var activity =  Activator.CreateInstance(t.type) as IWorkflowActivityInit;
-                activity.Set(sp, t.method, t.argList);
-                return activity;
-            }
-
             List<Type> activities = new List<Type>();
 
             var dt = moduleBuilder.DefineType(type.Name + "Derived" + Interlocked.Increment(ref id), 
@@ -81,7 +79,7 @@ namespace NeuroSpeech.Workflows.Impl
             var wrapper = typeof(WorkflowExecutor<,,>).MakeGenericType(innerClass, inputType, outputType);
             types[type.FullName] = (wrapper, null, null);
 
-            return (Search, type.FullName, activities.ToArray());
+            return (Build, type.FullName, activities.ToArray());
         }
 
         private void CreateEvent(TypeBuilder type, MethodInfo method, EventAttribute e)

@@ -1,5 +1,6 @@
 ﻿#nullable enable
 using DurableTask.Core;
+using NeuroSpeech.Workflows.Impl;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -36,15 +37,32 @@ namespace NeuroSpeech.Workflows
     public abstract class Workflow<TInput, TOutput>
     {
 
-        public static Task<OrchestrationInstance> Queue<T>(TaskHubClient client, TInput input)
-        {
-            return client.CreateOrchestrationInstanceAsync(typeof(T), input);
-        }
-
         public OrchestrationContext? context;
+
+        internal IServiceProvider? serviceProvider;
 
         private Dictionary<string, TaskCompletionSource<string>> waitTasks 
             = new Dictionary<string, TaskCompletionSource<string>>();
+
+        /// <summary>
+        /// Invokes another Workflow in the same Orchestration Context,
+        /// this will not create a new Orchestration, instead it will
+        /// just call the workflow and use the methods as they were inside of
+        /// this workflow
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="type"></param>
+        /// <param name="input"></param>
+        /// <returns></returns>
+        protected Task<T> InvokeWorkflow<T>(Type type, object input)
+        {
+            if (context == null)
+                throw new InvalidOperationException($"This method cannot be called from an activity");
+
+            var w = (ClrHelper.Instance.Build(type.FullName, serviceProvider) as IWorkflow<T>)!;
+            // run...
+            return w.RunAsync(context, input);
+        }
 
         internal TaskCompletionSource<string> GetTaskCompletionSource(string name)
         {

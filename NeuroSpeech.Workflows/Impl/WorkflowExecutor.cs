@@ -4,7 +4,14 @@ using System.Threading.Tasks;
 
 namespace NeuroSpeech.Workflows.Impl
 {
-    public class WorkflowExecutor<T,TInput, TOutput> : TaskOrchestration<TOutput, TInput>
+    internal interface IWorkflow<T>
+    {
+        Task<T> RunAsync(OrchestrationContext context, object input);
+    }
+
+
+
+    public class WorkflowExecutor<T,TInput, TOutput> : TaskOrchestration<TOutput, TInput>, IWorkflow<TOutput>
         where T: Workflow<TInput, TOutput>
     {
         private readonly IServiceProvider sp;
@@ -25,6 +32,11 @@ namespace NeuroSpeech.Workflows.Impl
         {
             workflow.context = context;
             workflow.GetTaskCompletionSource(name).TrySetResult(input);
+        }
+
+        Task<TOutput> IWorkflow<TOutput>.RunAsync(OrchestrationContext context, object input)
+        {
+            return RunTask(context, (TInput)input);
         }
     }
 }
