@@ -41,6 +41,16 @@ namespace NeuroSpeech.Workflows
             return (ta[0], ta[1]);
         }
 
+        public static (Type t1, Type t2, Type t3) Get3GenericArguments(this Type type)
+        {
+            var bt = type;
+            while (!bt.IsGenericType || bt.GetGenericArguments().Length != 3)
+                bt = bt.BaseType;
+            var ta = bt.GetGenericArguments();
+            return (ta[0], ta[1], ta[2]);
+        }
+
+
         public static Type GetArgument(this Type type, Type genericType)
         {
             while (!type.IsConstructedGenericType)

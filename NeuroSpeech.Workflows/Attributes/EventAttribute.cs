@@ -2,7 +2,7 @@
 
 namespace NeuroSpeech.Workflows
 {
-    [AttributeUsage(AttributeTargets.Method)]
+    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Field)]
     public class EventAttribute: Attribute
     {
         public readonly string Name;

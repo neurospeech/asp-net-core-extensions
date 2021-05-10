@@ -1,4 +1,7 @@
-﻿using Newtonsoft.Json;
+﻿#nullable enable
+using Newtonsoft.Json;
+using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace NeuroSpeech.Workflows
@@ -8,29 +11,44 @@ namespace NeuroSpeech.Workflows
         void SetEvent(string input);
     }
 
-    public class WorkflowEvent<T>: IWorkflowEvent
+    public class WorkflowEvent
     {
-        public Task<T> Event => taskSoruce.Task;
-        private TaskCompletionSource<T> taskSoruce;
-
+        private Queue<string>? pending;
+        private TaskCompletionSource<string>? taskSoruce;
+        private CancellationTokenSource? cancelSource;
+        
         public WorkflowEvent()
         {
-            this.taskSoruce = new TaskCompletionSource<T>();
         }
 
         public void Reset()
         {
-            taskSoruce = new TaskCompletionSource<T>();
+            cancelSource?.Cancel();
+            taskSoruce = null;
+            cancelSource = null;
         }
 
-        public void SetEvent(T result)
+        public void SetEvent(string result)
         {
+            if(taskSoruce == null)
+            {
+                pending ??= new Queue<string>();
+                pending.Enqueue(result);
+                return;
+            }
+            cancelSource?.Cancel();
             this.taskSoruce.TrySetResult(result);
         }
 
-        void IWorkflowEvent.SetEvent(string input)
+        public (Task<string> waiter, CancellationToken token) Request()
         {
-            SetEvent(JsonConvert.DeserializeObject<T>(input));
+            if(pending?.Count > 0)
+            {
+                return (Task.FromResult(pending.Dequeue()), default);
+            }
+            taskSoruce = new TaskCompletionSource<string>();
+            cancelSource = new CancellationTokenSource();
+            return (taskSoruce.Task, cancelSource.Token);
         }
     }
 }
