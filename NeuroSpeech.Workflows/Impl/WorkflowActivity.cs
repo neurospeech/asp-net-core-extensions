@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -24,6 +25,13 @@ namespace NeuroSpeech.Workflows.Impl
         private static Dictionary<string, ActivityFunction<TOutput>> functions 
             = new Dictionary<string, ActivityFunction<TOutput>>();
 
+        private static MethodInfo getRequiredService = typeof(ServiceProviderServiceExtensions)
+                    .GetMethods()
+                    .First(x => x.Name == nameof(ServiceProviderServiceExtensions.GetRequiredService)
+                        && x.IsGenericMethod
+                        && x.GetParameters().Length == 1);
+
+
         private static ActivityFunction<TOutput> Function(MethodInfo method , Type[] argList)
         {
             var key = method.DeclaringType.FullName + "_" + method.Name;
@@ -41,8 +49,6 @@ namespace NeuroSpeech.Workflows.Impl
             }
             var pa = method.GetParameters();
 
-            var getRequiredService = typeof(ServiceProviderServiceExtensions)
-                    .GetMethod(nameof(ServiceProviderServiceExtensions.GetRequiredService), new Type[] { typeof(IServiceProvider) });
 
             List <Expression> arguments = new List<Expression>();
             var i = 0;
