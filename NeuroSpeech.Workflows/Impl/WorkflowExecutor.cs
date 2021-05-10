@@ -1,4 +1,5 @@
-﻿using DurableTask.Core;
+﻿#nullable enable
+using DurableTask.Core;
 using System;
 using System.Threading.Tasks;
 

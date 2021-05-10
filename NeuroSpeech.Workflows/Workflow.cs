@@ -23,13 +23,12 @@ namespace NeuroSpeech.Workflows
             return o.InstanceId;
         }
 
-        public static Task<TR1> RunInAsync<TW1, TI1, TR1>(TW1 workflow, TI1 input)
-            where TW1: Workflow<TW1, TI1, TR1>
+        public static Task<TOutput> RunInAsync<TI, TO>(BaseWorkflow<TI,TO> workflow, TInput input)
         {
             if (workflow.context == null)
                 throw new InvalidOperationException($"Cannot run workflow within an activity");
-            var w = ClrHelper.Instance.Build(typeof(TWorkflow).FullName, workflow.serviceProvider) as IWorkflowExecutor<TR1>;
-            return w.RunAsync(workflow.context, input);
+            var w = (ClrHelper.Instance.Build(typeof(TWorkflow).FullName, workflow.serviceProvider) as IWorkflowExecutor<TOutput>)!;
+            return w.RunAsync(workflow.context, input!);
         }
 
         internal override void OnEvent(string name, string input)

@@ -53,9 +53,6 @@ namespace NeuroSpeech.Workflows.Impl
 
             foreach(var method in type.GetMethods())
             {
-                if (!method.IsVirtual)
-                    continue;
-
                 //var e = method.GetCustomAttribute<EventAttribute>();
                 //if(e != null) {
                 //    CreateEvent(dt, method, e);
@@ -66,6 +63,9 @@ namespace NeuroSpeech.Workflows.Impl
                 if (a == null) {
                     continue;
                 }
+
+                if (!method.IsVirtual)
+                    throw new InvalidOperationException($"Activity method must be virtual {method.DeclaringType.FullName}.{method.Name}");
 
                 var (at, argList) = CreateMethod(dt, method);
                 types[at.FullName] = (at, method, argList);
