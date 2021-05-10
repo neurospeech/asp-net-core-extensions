@@ -25,12 +25,14 @@ namespace NeuroSpeech.Workflows.Impl
         public override Task<TOutput> RunTask(OrchestrationContext context, TInput input)
         {
             workflow.context = context;
+            workflow.serviceProvider = sp;
             return workflow.RunTask(input);
         }
 
         public override void OnEvent(OrchestrationContext context, string name, string input)
         {
             workflow.context = context;
+            workflow.serviceProvider = sp;
             workflow.GetTaskCompletionSource(name).TrySetResult(input);
         }
 

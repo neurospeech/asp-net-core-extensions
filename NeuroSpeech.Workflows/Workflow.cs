@@ -92,6 +92,7 @@ namespace NeuroSpeech.Workflows
             }
         }
 
+        [EditorBrowsable(EditorBrowsableState.Never)]
         protected Task<TR> CallTaskAsync<TI, TActivity, TR>(TI input)
         {
             if (context == null)
