@@ -12,32 +12,6 @@ using System.Threading.Tasks;
 namespace NeuroSpeech.Workflows
 {
 
-    public class EventResult
-    {
-        public readonly string? Result;
-        public readonly bool TimedOut;
-
-        public EventResult(string result)
-        {
-            this.Result = result;
-            TimedOut = false;
-        }
-
-        private EventResult(string? result, bool timedout)
-        {
-            this.Result = result;
-            this.TimedOut = timedout;
-        }
-
-
-        internal static readonly EventResult TimedOutValue = new EventResult(default, true);
-
-        public static readonly Task<EventResult> Empty = Task.FromResult(new EventResult(null!));
-
-        public static EventResult From(Task<string> result)
-            => result.IsCompleted ? new EventResult(result.Result) : EventResult.TimedOutValue;
-    }
-
 
     public abstract class Workflow<TWorkflow, TInput, TOutput>: BaseWorkflow<TInput, TOutput>
         where TWorkflow: Workflow<TWorkflow, TInput, TOutput>
@@ -227,7 +201,7 @@ namespace NeuroSpeech.Workflows
 
         }
 
-        protected async Task<(EventResult Event1, EventResult Event2, EventResult)> 
+        protected async Task<(EventResult Event1, EventResult Event2, EventResult Event3)> 
             WaitForEvents<T1, T2, T3>(WorkflowEvent e1, WorkflowEvent e2, WorkflowEvent e3, TimeSpan maxWait)
         {
             if (context == null)
