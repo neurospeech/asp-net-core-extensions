@@ -68,6 +68,9 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSpeech.IOExtensions", "NeuroSpeech.IOExtensions\NeuroSpeech.IOExtensions.csproj", "{2A5AF3E1-F188-46C4-9B3F-0B092DE7BBEF}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Workflows", "Workflows", "{1BECAAB5-DE53-4F61-9655-EB746F209E14}"
+	ProjectSection(SolutionItems) = preProject
+		NeuroSpeech.Workflows\README.md = NeuroSpeech.Workflows\README.md
+	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSpeech.Workflows", "NeuroSpeech.Workflows\NeuroSpeech.Workflows.csproj", "{9BEFAC8E-3F9F-4006-B6E9-7E8A41C797D1}"
 EndProject
