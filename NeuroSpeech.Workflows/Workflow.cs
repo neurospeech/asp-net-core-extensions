@@ -17,12 +17,40 @@ namespace NeuroSpeech.Workflows
         where TWorkflow: Workflow<TWorkflow, TInput, TOutput>
     {
 
-        public static async Task<string> CreateInstance(BaseWorkflowService context, TInput input)
+        public static async Task<string> CreateInstanceAsync(BaseWorkflowService context, string instanceId, TInput input)
+        {
+            var o = await context.client.CreateOrchestrationInstanceAsync(typeof(TWorkflow), instanceId, input);
+            return o.InstanceId;
+        }
+
+        public static async Task<string> CreateInstanceAsync(BaseWorkflowService context, string instanceId, TInput input, DateTime at)
+        {
+            var o = await context.client.CreateScheduledOrchestrationInstanceAsync(typeof(TWorkflow), instanceId, input, at);
+            return o.InstanceId;
+        }
+
+        public static async Task<string> CreateInstanceAsync(BaseWorkflowService context, TInput input)
         {
             var o = await context.client.CreateOrchestrationInstanceAsync(typeof(TWorkflow), input);
             return o.InstanceId;
         }
 
+        public static async Task<string> CreateInstanceAsync(BaseWorkflowService context, TInput input, DateTime at)
+        {
+            var o = await context.client.CreateScheduledOrchestrationInstanceAsync(typeof(TWorkflow), input, at);
+            return o.InstanceId;
+        }
+
+
+        /// <summary>
+        /// Invokes another Workflow in the same Orchestration Context,
+        /// this will not create a new Orchestration, instead it will
+        /// just call the workflow and use the methods as they were inside of
+        /// this workflow
+        /// </summary>
+        /// <param name="workflow"></param>
+        /// <param name="input"></param>
+        /// <returns></returns>
         public static Task<TOutput> RunInAsync<TI, TO>(BaseWorkflow<TI,TO> workflow, TInput input)
         {
             if (workflow.context == null)
@@ -40,26 +68,6 @@ namespace NeuroSpeech.Workflows
         }
 
         /// <summary>
-        /// Invokes another Workflow in the same Orchestration Context,
-        /// this will not create a new Orchestration, instead it will
-        /// just call the workflow and use the methods as they were inside of
-        /// this workflow
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="type"></param>
-        /// <param name="input"></param>
-        /// <returns></returns>
-        protected Task<T> InvokeWorkflow<T>(Type type, object input)
-        {
-            if (context == null)
-                throw new InvalidOperationException($"This method cannot be called from an activity");
-
-            var w = (ClrHelper.Instance.Build(type.FullName, serviceProvider) as IWorkflowExecutor<T>)!;
-            // run...
-            return w.RunAsync(context, input);
-        }
-
-        /// <summary>
         /// Creates a waitable timer for given delay
         /// </summary>
         /// <param name="wait"></param>
@@ -67,11 +75,13 @@ namespace NeuroSpeech.Workflows
         /// <returns></returns>
         public async Task Delay(TimeSpan wait, CancellationToken token = default)
         {
+            if (context == null)
+                throw new InvalidOperationException($"You cannot call create a timer from activity");
             if (wait.TotalMilliseconds <= 0)
                 throw new ArgumentOutOfRangeException($"Cannot create timer for time in the past");
             try
             {
-                await context!.CreateTimer(context.CurrentUtcDateTime.Add(wait), true, token);
+                await context.CreateTimer(context.CurrentUtcDateTime.Add(wait), true, token);
             }catch (TaskCanceledException) {
             }
         }
@@ -137,10 +147,18 @@ namespace NeuroSpeech.Workflows
             return context.ScheduleTask<TR>(typeof(TActivity), new Tuple<T1,T2,T3,T4,T5,T6,T7,T8>(i1, i2, i3, i4, i5, i6, i7, i8));
         }
 
+        /// <summary>
+        /// Returns EventResult after the event was fired or timedout
+        /// </summary>
+        /// <param name="event"></param>
+        /// <param name="maxWait">Can be zero or Positive only</param>
+        /// <returns></returns>
         protected async Task<EventResult> WaitForEvent(WorkflowEvent @event, TimeSpan maxWait)
         {
             if (context == null)
                 throw new InvalidOperationException($"You cannot wait for event in the activity");
+            if (maxWait.TotalMilliseconds < 0)
+                throw new ArgumentOutOfRangeException($"maxWait cannot be negative");
             var (task, cancel) = @event.Request();
             try
             {
@@ -163,10 +181,18 @@ namespace NeuroSpeech.Workflows
             }
         }
 
+        /// <summary>
+        /// Returns EventResult after any of two events was fired or timedout
+        /// </summary>
+        /// <param name="event"></param>
+        /// <param name="maxWait">Can be zero or Positive only</param>
+        /// <returns></returns>
         protected async Task<(EventResult Event1, EventResult Event2)> WaitForEvents(WorkflowEvent e1, WorkflowEvent e2, TimeSpan maxWait)
         {
             if (context == null)
                 throw new InvalidOperationException($"You cannot wait for event in the activity");
+            if (maxWait.TotalMilliseconds < 0)
+                throw new ArgumentOutOfRangeException($"maxWait cannot be negative");
             var (t1, c1) = e1.Request();
             var (t2, c2) = e2.Request();
             try
@@ -200,11 +226,19 @@ namespace NeuroSpeech.Workflows
 
         }
 
+        /// <summary>
+        /// Returns EventResult after any of three events was fired or timedout
+        /// </summary>
+        /// <param name="event"></param>
+        /// <param name="maxWait">Can be zero or Positive only</param>
+        /// <returns></returns>
         protected async Task<(EventResult Event1, EventResult Event2, EventResult Event3)> 
             WaitForEvents<T1, T2, T3>(WorkflowEvent e1, WorkflowEvent e2, WorkflowEvent e3, TimeSpan maxWait)
         {
             if (context == null)
                 throw new InvalidOperationException($"You cannot wait for event in the activity");
+            if (maxWait.TotalMilliseconds < 0)
+                throw new ArgumentOutOfRangeException($"maxWait cannot be negative");
             var (t1, c1) = e1.Request();
             var (t2, c2) = e2.Request();
             var (t3, c3) = e3.Request();
