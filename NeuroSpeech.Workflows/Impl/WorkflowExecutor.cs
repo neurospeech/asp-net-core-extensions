@@ -33,7 +33,7 @@ namespace NeuroSpeech.Workflows.Impl
         {
             workflow.context = context;
             workflow.serviceProvider = sp;
-            workflow.GetTaskCompletionSource(name).TrySetResult(input);
+            workflow.OnEvent(name, input);
         }
 
         Task<TOutput> IWorkflow<TOutput>.RunAsync(OrchestrationContext context, object input)

@@ -41,8 +41,12 @@ namespace NeuroSpeech.Workflows
 
         internal IServiceProvider? serviceProvider;
 
-        private Dictionary<string, TaskCompletionSource<string>> waitTasks 
-            = new Dictionary<string, TaskCompletionSource<string>>();
+        private EventQueueSet events = new EventQueueSet();
+
+        internal void OnEvent(string name, string input)
+        {
+            events[name].Fire(input);
+        }
 
         /// <summary>
         /// Invokes another Workflow in the same Orchestration Context,
@@ -62,15 +66,6 @@ namespace NeuroSpeech.Workflows
             var w = (ClrHelper.Instance.Build(type.FullName, serviceProvider) as IWorkflow<T>)!;
             // run...
             return w.RunAsync(context, input);
-        }
-
-        internal TaskCompletionSource<string> GetTaskCompletionSource(string name)
-        {
-            if (waitTasks.TryGetValue(name, out var value))
-                return value;
-            value = new TaskCompletionSource<string>();
-            waitTasks[name] = value;
-            return value;
         }
 
         public abstract Task<TOutput> RunTask(TInput input);
@@ -150,37 +145,45 @@ namespace NeuroSpeech.Workflows
         {
             if (context == null)
                 throw new InvalidOperationException($"You cannot call another activity from activity");
-            return context.ScheduleTask<TR>(typeof(TActivity), Tuple.Create(i1, i2, i3, i4, i5, i6, i7, i8));
+            return context.ScheduleTask<TR>(typeof(TActivity), new Tuple<T1,T2,T3,T4,T5,T6,T7,T8>(i1, i2, i3, i4, i5, i6, i7, i8));
         }
 
         protected async Task<(string? result, bool timedOut)> WaitForEventStringAsync(string name, TimeSpan delay)
         {
             if (context == null)
                 throw new InvalidOperationException("You can not wait for an event inside an activity");
-            TaskCompletionSource<string> wait;
             try
             {
-                if (delay.TotalMilliseconds <= 0)
+                var eq = events[name];
+                if (delay.TotalMilliseconds == 0)
                 {
-                    return (await GetTaskCompletionSource(name).Task, false);
+                    return (await eq.Wait().task, false);
                 }
-                wait = GetTaskCompletionSource(name);
-                if (wait.Task.IsCompleted)
-                    return (await wait.Task, false);
+                var (wait, cancellation) = eq.Wait();
+                if (wait.IsCompleted)
+                    return (await wait, false);
 
-                var ct = new System.Threading.CancellationTokenSource();
-                var timer = context.CreateTimer<bool>(context.CurrentUtcDateTime.Add(delay), true, ct.Token);
+                var timer = context.CreateTimer<bool>(context.CurrentUtcDateTime.Add(delay), true, cancellation);
+                if (timer.IsCompleted)
+                {
 
-                await Task.WhenAny(timer, wait.Task);
+                    // if this is playing
+                    // it may already be timed out
+                    eq.Timeout();
+                    return (default, true);
+                }
+                await Task.WhenAny(timer, wait);
 
                 if (timer.IsCompleted)
+                {
+                    eq.Timeout();
                     return (default, true);
-                ct.Cancel();
+                }
+                return (await wait, false);
             } catch (TaskCanceledException)
             {
                 return (default, true);
             }
-            return (await wait.Task, false);
         }
 
 
