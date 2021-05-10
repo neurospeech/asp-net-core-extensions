@@ -14,7 +14,7 @@ namespace NeuroSpeech.Workflows.Impl
         void Set(IServiceProvider sp, MethodInfo method, Type[] argList);
     }
 
-    public delegate Task<TOutput> ActivityFunction<TOutput>(IServiceProvider serviceProvider, TaskContext context, object input);
+    public delegate Task<TOutput> ActivityFunction<TInput, TOutput>(IServiceProvider serviceProvider, TaskContext context, TInput input);
 
     public class WorkflowActivity<T, TInput, TOutput>: TaskActivity<TInput, TOutput>, IWorkflowActivityInit
     {
@@ -22,8 +22,8 @@ namespace NeuroSpeech.Workflows.Impl
         private MethodInfo method;
         private Type[] argList;
 
-        private static Dictionary<string, ActivityFunction<TOutput>> functions 
-            = new Dictionary<string, ActivityFunction<TOutput>>();
+        private static Dictionary<string, ActivityFunction<TInput, TOutput>> functions 
+            = new Dictionary<string, ActivityFunction<TInput, TOutput>>();
 
         private static MethodInfo getRequiredService = typeof(ServiceProviderServiceExtensions)
                     .GetMethods()
@@ -32,7 +32,7 @@ namespace NeuroSpeech.Workflows.Impl
                         && x.GetParameters().Length == 1);
 
 
-        private static ActivityFunction<TOutput> Function(MethodInfo method , Type[] argList)
+        private static ActivityFunction<TInput, TOutput> Function(MethodInfo method , Type[] argList)
         {
             var key = method.DeclaringType.FullName + "_" + method.Name;
             if (functions.TryGetValue(key, out var fx))
@@ -81,7 +81,7 @@ namespace NeuroSpeech.Workflows.Impl
             var call = Expression.Call(Expression.New(typeof(T)), method, arguments);
 
             var fxc = Expression
-                .Lambda<ActivityFunction<TOutput>>(call, sp, tc, input)
+                .Lambda<ActivityFunction<TInput, TOutput>>(call, sp, tc, input)
                 .Compile();
             functions[key] = fxc;
             return fxc;
