@@ -42,7 +42,7 @@ namespace NeuroSpeech.Workflows.Impl
             var pa = method.GetParameters();
 
             var getRequiredService = typeof(ServiceProviderServiceExtensions)
-                    .GetMethod(nameof(ServiceProviderServiceExtensions.GetRequiredService));
+                    .GetMethod(nameof(ServiceProviderServiceExtensions.GetRequiredService), new Type[] { typeof(IServiceProvider) });
 
             List <Expression> arguments = new List<Expression>();
             var i = 0;
@@ -69,7 +69,7 @@ namespace NeuroSpeech.Workflows.Impl
                     continue;
                 }
                 // args[i] = scope.ServiceProvider.GetRequiredService(p.ParameterType);
-                arguments.Add(Expression.Call(sp, getRequiredService,  Expression.Constant(p.ParameterType)));
+                arguments.Add(Expression.Call(sp, getRequiredService.MakeGenericMethod(p.ParameterType)));
             }
 
             var call = Expression.Call(Expression.New(typeof(T)), method, arguments);
