@@ -31,6 +31,12 @@ namespace NeuroSpeech.Workflows.Impl
                         && x.IsGenericMethod
                         && x.GetParameters().Length == 1);
 
+        private static MethodInfo getCancellationToken
+            = typeof(CancelTokenExtensions).GetMethod(nameof(CancelTokenExtensions.GetCancellationToken),
+                BindingFlags.Public | BindingFlags.Static,
+                null,
+                new Type[] { typeof(TaskContext) }, null);
+
 
         private static ActivityFunction<TInput, TOutput> Function(MethodInfo method , Type[] argList)
         {
@@ -72,6 +78,11 @@ namespace NeuroSpeech.Workflows.Impl
                 if (typeof(TaskContext).IsAssignableFrom(p.ParameterType))
                 {
                     arguments.Add(tc);
+                    continue;
+                }
+                if(typeof(System.Threading.CancellationToken) == p.ParameterType)
+                {
+                    arguments.Add(Expression.Call(null, getCancellationToken, tc));
                     continue;
                 }
                 // args[i] = scope.ServiceProvider.GetRequiredService(p.ParameterType);

@@ -1,6 +1,8 @@
 ﻿#nullable enable
 using DurableTask.Core;
 using System;
+using System.Collections.Concurrent;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace NeuroSpeech.Workflows.Impl
@@ -21,7 +23,9 @@ namespace NeuroSpeech.Workflows.Impl
         public abstract Task<TOutput> RunTask(TInput input);
 
         internal abstract void OnEvent(string name, string input);
+
     }
+
 
 
     public class WorkflowExecutor<T,TInput, TOutput> : TaskOrchestration<TOutput, TInput>, IWorkflowExecutor<TOutput>
@@ -34,19 +38,42 @@ namespace NeuroSpeech.Workflows.Impl
         {
             this.sp = sp;
             this.workflow = sp.Build<T>();
-
             // setup events..
             this.workflow.SetupEvents();
         }
-        public override Task<TOutput> RunTask(OrchestrationContext context, TInput input)
+        public override async Task<TOutput> RunTask(OrchestrationContext context, TInput input)
         {
+
+            TOutput result = default!;
+
+            async Task RunInternalAsync(TInput input) {
+                result = await workflow.RunTask(input);
+            }
+            var ct = context.GetCancellationTokenSource().Token;
             workflow.context = context;
             workflow.serviceProvider = sp;
-            return workflow.RunTask(input);
+            var completed = new CancellationTokenSource();
+
+            await Task.WhenAny( Task.Delay(TimeSpan.FromMilliseconds(-1), completed.Token), RunInternalAsync(input) );
+
+            context.RemoveCancellationTokenSource();
+            completed.Cancel();
+
+            if(ct.IsCancellationRequested)
+            {
+                throw new TaskCanceledException($"Task was cancelled by cancel event");
+            }
+            return result;
         }
 
         public override void OnEvent(OrchestrationContext context, string name, string input)
         {
+            if(name == "__CANCEL")
+            {
+                context.GetCancellationTokenSource().Cancel();
+                return;
+            }
+
             workflow.context = context;
             workflow.serviceProvider = sp;
             workflow.OnEvent(name, input);

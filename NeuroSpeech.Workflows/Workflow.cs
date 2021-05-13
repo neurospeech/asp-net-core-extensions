@@ -41,6 +41,11 @@ namespace NeuroSpeech.Workflows
             return o.InstanceId;
         }
 
+        public static async Task CancelAsync(BaseWorkflowService context, string id)
+        {
+            var ctx = await context.client.GetOrchestrationStateAsync(id);
+            await context.client.RaiseEventAsync(ctx.OrchestrationInstance, "__CANCEL", "cancel");
+        }
 
         /// <summary>
         /// Invokes another Workflow in the same Orchestration Context,
