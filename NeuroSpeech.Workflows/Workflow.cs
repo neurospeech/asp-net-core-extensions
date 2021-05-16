@@ -11,7 +11,38 @@ using System.Threading.Tasks;
 
 namespace NeuroSpeech.Workflows
 {
+    public class WorkflowResult<T>
+    {
+        public WorkflowResult(OrchestrationState ctx)
+        {
+            OrchestrationStatus = ctx.OrchestrationStatus;
+            switch (OrchestrationStatus)
+            {
+                case OrchestrationStatus.Completed:
+                    Result = JsonConvert.DeserializeObject<T>(ctx.Output);
+                    break;
+                case OrchestrationStatus.Failed:
+                    Error = ctx.Output;
+                    break;
 
+            }
+            Status = ctx.Status;
+        }
+
+        public T? Result { get; internal set; }
+
+        public string? Status { get; set; }
+
+        public string? Error { get; set; }
+
+        public OrchestrationStatus OrchestrationStatus { get; set; }
+
+        [JsonIgnore]
+        public bool Success => OrchestrationStatus == OrchestrationStatus.Completed;
+
+        [JsonIgnore]
+        public bool Failed => OrchestrationStatus == OrchestrationStatus.Failed;
+    }
 
     public abstract class Workflow<TWorkflow, TInput, TOutput>: BaseWorkflow<TInput, TOutput>
         where TWorkflow: Workflow<TWorkflow, TInput, TOutput>
@@ -46,6 +77,13 @@ namespace NeuroSpeech.Workflows
             var ctx = await context.client.GetOrchestrationStateAsync(id);
             await context.client.RaiseEventAsync(ctx.OrchestrationInstance, "__CANCEL", "cancel");
         }
+
+        public static async Task<WorkflowResult<TOutput>> GetResultAsync(BaseWorkflowService context, string id)
+        {
+            var ctx = await context.client.GetOrchestrationStateAsync(id);
+            return new WorkflowResult<TOutput>(ctx);
+        }
+
 
         /// <summary>
         /// Invokes another Workflow in the same Orchestration Context,
@@ -152,18 +190,25 @@ namespace NeuroSpeech.Workflows
             return context.ScheduleTask<TR>(typeof(TActivity), new Tuple<T1,T2,T3,T4,T5,T6,T7,T8>(i1, i2, i3, i4, i5, i6, i7, i8));
         }
 
+        private EventQueue GetEvent(WorkflowEvent handler)
+        {
+            this.events.TryGetValue(handler.Name, out var ve);
+            return ve;
+        }
+
         /// <summary>
         /// Returns EventResult after the event was fired or timedout
         /// </summary>
         /// <param name="event"></param>
         /// <param name="maxWait">Can be zero or Positive only</param>
         /// <returns></returns>
-        protected async Task<EventResult> WaitForEvent(WorkflowEvent @event, TimeSpan maxWait)
+        protected async Task<EventResult> WaitForEvent(WorkflowEvent @eventHandler, TimeSpan maxWait)
         {
             if (context == null)
                 throw new InvalidOperationException($"You cannot wait for event in the activity");
             if (maxWait.TotalMilliseconds < 0)
                 throw new ArgumentOutOfRangeException($"maxWait cannot be negative");
+            var @event = this.GetEvent(eventHandler);
             var (task, cancel) = @event.Request();
             try
             {
@@ -192,12 +237,14 @@ namespace NeuroSpeech.Workflows
         /// <param name="event"></param>
         /// <param name="maxWait">Can be zero or Positive only</param>
         /// <returns></returns>
-        protected async Task<(EventResult Event1, EventResult Event2)> WaitForEvents(WorkflowEvent e1, WorkflowEvent e2, TimeSpan maxWait)
+        protected async Task<(EventResult Event1, EventResult Event2)> WaitForEvents(WorkflowEvent eh1, WorkflowEvent eh2, TimeSpan maxWait)
         {
             if (context == null)
                 throw new InvalidOperationException($"You cannot wait for event in the activity");
             if (maxWait.TotalMilliseconds < 0)
                 throw new ArgumentOutOfRangeException($"maxWait cannot be negative");
+            var e1 = GetEvent(eh1);
+            var e2 = GetEvent(eh2);
             var (t1, c1) = e1.Request();
             var (t2, c2) = e2.Request();
             try
@@ -238,12 +285,15 @@ namespace NeuroSpeech.Workflows
         /// <param name="maxWait">Can be zero or Positive only</param>
         /// <returns></returns>
         protected async Task<(EventResult Event1, EventResult Event2, EventResult Event3)> 
-            WaitForEvents<T1, T2, T3>(WorkflowEvent e1, WorkflowEvent e2, WorkflowEvent e3, TimeSpan maxWait)
+            WaitForEvents<T1, T2, T3>(WorkflowEvent eh1, WorkflowEvent eh2, WorkflowEvent eh3, TimeSpan maxWait)
         {
             if (context == null)
                 throw new InvalidOperationException($"You cannot wait for event in the activity");
             if (maxWait.TotalMilliseconds < 0)
                 throw new ArgumentOutOfRangeException($"maxWait cannot be negative");
+            var e1 = GetEvent(eh1);
+            var e2 = GetEvent(eh2);
+            var e3 = GetEvent(eh3);
             var (t1, c1) = e1.Request();
             var (t2, c2) = e2.Request();
             var (t3, c3) = e3.Request();
@@ -279,21 +329,16 @@ namespace NeuroSpeech.Workflows
             }
         }
 
-        private Dictionary<string, WorkflowEvent> events = new Dictionary<string, WorkflowEvent>();
+        private Dictionary<string, EventQueue> events = new Dictionary<string, EventQueue>();
 
         internal override void SetupEvents()
         {
-            foreach(var f in typeof(TWorkflow).GetFields(System.Reflection.BindingFlags.DeclaredOnly | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
+            foreach(var f in typeof(TWorkflow).GetFields(System.Reflection.BindingFlags.DeclaredOnly | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static))
             {
                 if (f.GetCustomAttribute<EventAttribute>() == null)
                     continue;
-                var we = Activator.CreateInstance(f.FieldType) as WorkflowEvent;
-                if (we == null)
-                {
-                    throw new TypeAccessException($"Event field types must be of type WorkflowEvent<T> only");
-                }
-                f.SetValue(this, we);
-                events[f.Name] = we;
+                var v = f.GetValue(null) as WorkflowEvent;
+                events[v!.Name] = new EventQueue();
             }
         }
 

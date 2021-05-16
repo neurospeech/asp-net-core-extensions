@@ -23,13 +23,14 @@ public class SignupVerification: Workflow<SignupVerification, SignupModel, strin
 
 
     /// Event fired when user enters the code
+    /// Event must be marked as a static
     [Event]
-    public WorkflowEvent UserCode;
+    public static WorkflowEvent UserCode;
 
    
     /// User request for resend
     [Event]
-    public WorkflowEvent Resend;
+    public static WorkflowEvent Resend;
 
     /// This is the main method of workflow
     public async Task<string> RunAsync(SignupModel model) {
@@ -123,6 +124,13 @@ public class WorkflowService: BaseWorkflowService {
        EmailAddress = ....
        AccountId = ...
    });
+
+```
+
+# Raise an Event
+```c#
+
+   SignupVerification.UserCode.RaiseAsync(workflowService, id, "data");
 
 ```
 

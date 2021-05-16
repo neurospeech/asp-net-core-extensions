@@ -50,15 +50,20 @@ namespace NeuroSpeech.Workflows.Impl
 
             dt.DefineDefaultConstructor(MethodAttributes.Public);
 
+            foreach(var field in type.GetFields())
+            {
+                var a = field.GetCustomAttribute<EventAttribute>();
+                if (a == null)
+                    continue;
+                if (!field.IsStatic)
+                    throw new InvalidOperationException($"Event must be a static field");
+                WorkflowEvent wh = new WorkflowEvent(a.Name ?? field.Name);
+                field.SetValue(null, wh);
+            }
+
 
             foreach(var method in type.GetMethods())
             {
-                //var e = method.GetCustomAttribute<EventAttribute>();
-                //if(e != null) {
-                //    CreateEvent(dt, method, e);
-                //    continue;
-                //}
-
                 var a = method.GetCustomAttribute<ActivityAttribute>();
                 if (a == null) {
                     continue;

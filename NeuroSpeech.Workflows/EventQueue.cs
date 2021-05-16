@@ -13,11 +13,35 @@ namespace NeuroSpeech.Workflows
 
     public class WorkflowEvent
     {
+
+        internal WorkflowEvent(string name)
+        {
+            this.Name = name;
+        }
+
+        internal readonly string Name;
+
+        /// <summary>
+        /// Raises the event for given instance id
+        /// </summary>
+        /// <param name="service"></param>
+        /// <param name="id"></param>
+        /// <param name="data"></param>
+        /// <returns></returns>
+        public async Task RaiseAsync(BaseWorkflowService service, string id, string data = "")
+        {
+            var ctx = await service.client.GetOrchestrationStateAsync(id);
+            await service.client.RaiseEventAsync(ctx.OrchestrationInstance, Name, data);
+        }
+    }
+
+    public class EventQueue
+    {
         private Queue<string>? pending;
         private TaskCompletionSource<string>? taskSoruce;
         private CancellationTokenSource? cancelSource;
         
-        public WorkflowEvent()
+        public EventQueue()
         {
         }
 
