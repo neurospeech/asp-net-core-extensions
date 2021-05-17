@@ -212,13 +212,13 @@ namespace NeuroSpeech.Workflows
             var (task, cancel) = @event.Request();
             try
             {
-                if (task.IsCompleted)
-                    return EventResult.From(task);
-                if (maxWait.TotalMilliseconds == 0)
-                {
-                    await task;
-                    return EventResult.From(task);
-                }
+                //if (task.IsCompleted)
+                //    return EventResult.From(task);
+                //if (maxWait.TotalMilliseconds == 0)
+                //{
+                //    await task;
+                //    return EventResult.From(task);
+                //}
 
                 var timer = context.CreateTimer(context.CurrentUtcDateTime.Add(maxWait), true, cancel);
 
@@ -249,19 +249,19 @@ namespace NeuroSpeech.Workflows
             var (t2, c2) = e2.Request();
             try
             {
-                if (t1.IsCompleted || t2.IsCompleted)
-                {
-                    return (EventResult.From(t1), EventResult.From(t2));
-                }
-                if (maxWait.TotalMilliseconds == 0)
-                {
-                    await Task.WhenAny(t1, t2);
-                    return (EventResult.From(t1), EventResult.From(t2));
-                }
+                //if (t1.IsCompleted || t2.IsCompleted)
+                //{
+                //    return (EventResult.From(t1), EventResult.From(t2));
+                //}
+                //if (maxWait.TotalMilliseconds == 0)
+                //{
+                //    await Task.WhenAny(t1, t2);
+                //    return (EventResult.From(t1), EventResult.From(t2));
+                //}
                 var c = new CancellationTokenSource();
                 c1.Register(() => c.Cancel());
                 c2.Register(() => c.Cancel());
-                var timer = context.CreateTimer(context.CurrentUtcDateTime.Add(maxWait), true);
+                var timer = context.CreateTimer(context.CurrentUtcDateTime.Add(maxWait), true, c.Token);
                 await Task.WhenAny(t1, t2, timer);
                 if (timer.IsCompleted)
                 {
@@ -299,20 +299,20 @@ namespace NeuroSpeech.Workflows
             var (t3, c3) = e3.Request();
             try
             {
-                if (t1.IsCompleted || t2.IsCompleted || t3.IsCompleted)
-                {
-                    return (EventResult.From(t1), EventResult.From(t2), EventResult.From(t3));
-                }
-                if (maxWait.TotalMilliseconds == 0)
-                {
-                    await Task.WhenAny(t1, t2);
-                    return (EventResult.From(t1), EventResult.From(t2), EventResult.From(t3));
-                }
+                //if (t1.IsCompleted || t2.IsCompleted || t3.IsCompleted)
+                //{
+                //    return (EventResult.From(t1), EventResult.From(t2), EventResult.From(t3));
+                //}
+                //if (maxWait.TotalMilliseconds == 0)
+                //{
+                //    await Task.WhenAny(t1, t2);
+                //    return (EventResult.From(t1), EventResult.From(t2), EventResult.From(t3));
+                //}
                 var c = new CancellationTokenSource();
                 c1.Register(() => c.Cancel());
                 c2.Register(() => c.Cancel());
                 c3.Register(() => c.Cancel());
-                var timer = context.CreateTimer(context.CurrentUtcDateTime.Add(maxWait), true);
+                var timer = context.CreateTimer(context.CurrentUtcDateTime.Add(maxWait), true, c.Token);
                 await Task.WhenAny(t1, t2, t3, timer);
                 if (timer.IsCompleted)
                 {
