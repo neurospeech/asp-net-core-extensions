@@ -154,7 +154,9 @@ namespace NeuroSpeech.EFCoreLiveMigration
                 r.ColumnDefault = x.GetDefaultValueSql() ?? (x.GetDefaultValue()?.ToString());
             }
 
-            if (x.PropertyInfo.GetCustomAttribute<DatabaseGeneratedAttribute>()?.DatabaseGeneratedOption == DatabaseGeneratedOption.Identity) {
+            if (x.PropertyInfo
+                ?.GetCustomAttribute<DatabaseGeneratedAttribute>()
+                ?.DatabaseGeneratedOption == DatabaseGeneratedOption.Identity) {
                 r.IsIdentity = true;
             }
 
