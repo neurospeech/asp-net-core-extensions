@@ -226,7 +226,7 @@ namespace NeuroSpeech.EFCoreLiveMigration.PostGreSql
                 if (existing != null)
                 {
                     // see if all are ok...
-                    var existingColumns = existing.Columns.ToJoinString(Escape);
+                    var existingColumns = existing.Columns.Select(x => $"{Escape(x)}").ToJoinString(Escape);
 
                     if (existingColumns.EqualsIgnoreCase(newColumns))
                         continue;

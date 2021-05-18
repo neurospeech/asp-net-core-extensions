@@ -228,7 +228,7 @@ namespace NeuroSpeech.EFCoreLiveMigration
                 if (existing != null)
                 {
                     // see if all are ok...
-                    var existingColumns = existing.Columns.ToJoinString();
+                    var existingColumns = existing.Columns.Select(x => $"{x} ASC").ToJoinString();
 
                     if (existingColumns.EqualsIgnoreCase(newColumns))
                         continue;
