@@ -60,7 +60,7 @@ namespace NeuroSpeech.EFCoreLiveMigration
 
                     col.ColumnName = reader.GetValue<string>("ColumnName");
                     col.IsPrimaryKey = reader.GetValue<bool>("IsPrimaryKey");
-                    col.IsNullable = reader.GetValue<string>("IsNullable") == "YES";
+                    col.IsNullable = reader.GetValue<bool>("IsNullable");
                     col.ColumnDefault = reader.GetValue<string>("ColumnDefault");
                     col.DataType = reader.GetValue<string>("DataType");
                     col.DataLength = reader.GetValue<int>("DataLength");
