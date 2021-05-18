@@ -65,6 +65,11 @@ namespace NeuroSpeech.EFCoreLiveMigration
             {
                 // var relational = entity.Relational();
 
+                if(entity.ClrType?.GetCustomAttribute<IgnoreMigrationAttribute>() != null)
+                {
+                    continue;
+                }
+
                 var columns = entity.GetProperties().Select(x => CreateColumn(x)).ToList();
 
                 var indexes = entity.GetIndexes();
