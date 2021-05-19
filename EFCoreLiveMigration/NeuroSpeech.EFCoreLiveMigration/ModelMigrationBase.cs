@@ -46,9 +46,6 @@ namespace NeuroSpeech.EFCoreLiveMigration
                 try
                 {
 
-                    if (entity.IsIgnoredByMigrations())
-                        continue;
-
                     if (entity.ClrType.GetCustomAttribute<IgnoreMigrationAttribute>() != null)
                         continue;
 

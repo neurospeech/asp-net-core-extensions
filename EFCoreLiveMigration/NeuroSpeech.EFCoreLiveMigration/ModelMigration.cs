@@ -50,7 +50,7 @@ namespace NeuroSpeech.EFCoreLiveMigration
         {
             var pkeys = entity
                 .GetProperties()
-                .Where(x => x.IsPrimaryKey())
+                .Where(x => x.IsKey())
                 .ToList();
 
             var tableName = entity.GetTableName();
@@ -144,7 +144,7 @@ namespace NeuroSpeech.EFCoreLiveMigration
         {
             var name = index.GetName();
             var columns = index.Properties;
-            var newColumns = columns.Select(x => $"{Escape(x.GetColumnName())} ASC").ToJoinString();
+            var newColumns = columns.Select(x => $"{Escape(x.ColumnName())} ASC").ToJoinString();
             var filter = index.GetFilter() == null ? "" : $" WHERE {index.GetFilter()}";
             Run(@$"CREATE NONCLUSTERED INDEX {name}
                 ON {GetTableNameWithSchema(index.DeclaringEntityType)} ({ newColumns })
@@ -157,7 +157,10 @@ namespace NeuroSpeech.EFCoreLiveMigration
     {
         public static string ColumnName(this IProperty property)
         {
-            return property.GetColumnName();
+            var name = property.DeclaringEntityType.GetTableName();
+            var schema = property.DeclaringEntityType.GetSchemaOrDefault();
+            var n = property.GetColumnName(StoreObjectIdentifier.Table(name, null));
+            return n;
         }
     }
 
