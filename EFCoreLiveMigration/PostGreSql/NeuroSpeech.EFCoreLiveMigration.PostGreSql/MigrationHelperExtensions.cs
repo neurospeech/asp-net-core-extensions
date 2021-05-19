@@ -5,9 +5,9 @@ namespace NeuroSpeech.EFCoreLiveMigration
 {
     public static class MigrationHelperExtensions
     {
-        public static MigrationHelper PostGreSqlMigrationHelper(this DbContext context)
+        public static ModelMigrationBase ForPostGreSqlMigration(this DbContext context)
         {
-            return new PostGreSqlMigrationHelper(context);
+            return new PostGreSqlMigration(context);
         }
     }
 }

@@ -15,7 +15,7 @@ namespace LiveMigrationConsole
 
             using (var db = new ERPContext(options.Options)) {
 
-                MigrationHelper.ForSqlServer(db).Migrate();
+                db.MigrateSqlServer().Migrate();
 
                 var acc = new Account {
                     DisplayName = "A",

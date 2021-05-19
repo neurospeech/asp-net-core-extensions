@@ -5,6 +5,7 @@ using Microsoft.Data.SqlClient;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using NeuroSpeech.EFCoreLiveMigration;
 
 namespace NeuroSpeech.EFCore.Mock
 {
@@ -98,9 +99,7 @@ namespace NeuroSpeech.EFCore.Mock
                 using (var db = (T)Activator.CreateInstance(typeof(T), options.Options))
                 {
 
-                    NeuroSpeech.EFCoreLiveMigration.MigrationHelper
-                        .ForSqlServer(db)
-                        .Migrate();
+                    db.MigrateSqlServer().Migrate();
 
                     //db.Talents.FirstOrDefault();
                     //var p = db.GetType().GetProperties().Where(x => x.PropertyType.Name.StartsWith("DbSet")).FirstOrDefault();
