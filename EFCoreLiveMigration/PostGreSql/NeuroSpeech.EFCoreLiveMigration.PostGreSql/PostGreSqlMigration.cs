@@ -79,7 +79,7 @@ namespace NeuroSpeech.EFCoreLiveMigration.PostGreSql
             Run( $"ALTER TABLE {table} RENAME {Escape(name)} TO {Escape(newName)}");
         }
 
-        protected override string ToColumn(IProperty c)
+        protected override string ToColumn(IProperty c, IEntityType entity = null)
         {
             var columnName = c.ColumnName();
 

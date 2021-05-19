@@ -58,7 +58,7 @@ namespace NeuroSpeech.EFCoreLiveMigration
             var existsCheck = TemplateQuery.New($"SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME={tableName} AND TABLE_SCHEMA={schema}");
 
             var createTable = TemplateQuery.Literal(@$"
-                    CREATE TABLE {GetTableNameWithSchema(entity)} ({ string.Join(",", pkeys.Select(c => ToColumn(c))) }, 
+                    CREATE TABLE {GetTableNameWithSchema(entity)} ({ string.Join(",", pkeys.Select(c => ToColumn(c, entity))) }, 
                     PRIMARY KEY( { string.Join(", ", pkeys.Select(x => this.Escape(x.ColumnName()))) } ))");
 
             var finalQuery = TemplateQuery.New( $"IF NOT EXISTS ({existsCheck}) {createTable}");
@@ -78,7 +78,7 @@ namespace NeuroSpeech.EFCoreLiveMigration
             return $"{Escape(entity.GetSchemaOrDefault())}.{Escape(entity.GetTableName())}";
         }
 
-        protected override string ToColumn(IProperty c)
+        protected override string ToColumn(IProperty c, IEntityType entity = null)
         {
             var columnName = c.ColumnName();
 
@@ -119,9 +119,10 @@ namespace NeuroSpeech.EFCoreLiveMigration
                 }
             }
 
-            var isIdentity = c.PropertyInfo
-                ?.GetCustomAttribute<DatabaseGeneratedAttribute>()
-                ?.DatabaseGeneratedOption == DatabaseGeneratedOption.Identity;
+            var isIdentity = c.DeclaringEntityType == entity && c.GetValueGenerationStrategy() == SqlServerValueGenerationStrategy.IdentityColumn;
+            //var isIdentity = c.PropertyInfo
+            //    ?.GetCustomAttribute<DatabaseGeneratedAttribute>()
+            //    ?.DatabaseGeneratedOption == DatabaseGeneratedOption.Identity;
 
             if (isIdentity)
             {

@@ -196,6 +196,6 @@ namespace NeuroSpeech.EFCoreLiveMigration
         protected abstract void RenameColumn(IProperty property, string postFix);
 
 
-        protected abstract string ToColumn(IProperty c);
+        protected abstract string ToColumn(IProperty c, IEntityType entity = null);
     }
 }

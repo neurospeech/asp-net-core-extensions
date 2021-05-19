@@ -30,6 +30,9 @@ namespace LiveMigrationConsole.Models
                 x.ProductID,
                 x.FeatureID
             });
+
+            modelBuilder.Entity<Account>().ToTable("Accounts");
+            modelBuilder.Entity<Talent>().ToTable("Talents");
         }
 
 
