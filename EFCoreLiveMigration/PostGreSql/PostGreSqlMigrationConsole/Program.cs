@@ -20,7 +20,7 @@ namespace LiveMigrationConsole
 
             using (var db = new ERPContext(options.Options)) {
 
-                db.PostGreSqlMigrationHelper().Migrate();
+                db.ForPostGreSqlMigration().Migrate();
                 
             }
 
