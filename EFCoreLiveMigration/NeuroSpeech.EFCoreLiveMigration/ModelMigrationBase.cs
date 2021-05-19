@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Data.Common;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 
 namespace NeuroSpeech.EFCoreLiveMigration
@@ -44,6 +45,13 @@ namespace NeuroSpeech.EFCoreLiveMigration
             {
                 try
                 {
+
+                    if (entity.IsIgnoredByMigrations())
+                        continue;
+
+                    if (entity.ClrType.GetCustomAttribute<IgnoreMigrationAttribute>() != null)
+                        continue;
+
 
                     context.Database.OpenConnection();
                     using (var tx = context.Database.GetDbConnection().BeginTransaction(System.Data.IsolationLevel.Serializable))
