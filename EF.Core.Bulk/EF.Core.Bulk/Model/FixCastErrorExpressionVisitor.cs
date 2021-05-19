@@ -261,5 +261,6 @@ namespace EFCoreBulk.Model
         {
             return x?.Update(x.Subquery.VisitNode(this));
         }
+
     }
 }
