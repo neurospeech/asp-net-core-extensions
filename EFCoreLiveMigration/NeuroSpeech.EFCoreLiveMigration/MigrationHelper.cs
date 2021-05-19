@@ -147,10 +147,15 @@ namespace NeuroSpeech.EFCoreLiveMigration
 
             r.CLRType = x.ClrType;
             r.ColumnDefault = x.GetDefaultValueSql();
+            //r.ColumnName = x.GetColumnName( StoreObjectIdentifier.Table(
+            //    x.DeclaringEntityType.GetTableName(),
+            //    x.DeclaringEntityType.GetSchema()
+            //    ) );
             r.ColumnName = x.GetColumnName();
             r.DataLength = x.GetMaxLength() ?? 0;
             r.DataType = x.GetColumnTypeForSql();
-            r.IsNullable = x.IsNullable;
+
+            r.IsNullable = x.DeclaringEntityType.BaseType != null ? true : x.IsNullable;
             r.IsPrimaryKey = x.IsPrimaryKey();
 
             r.OldNames = x.GetOldNames();

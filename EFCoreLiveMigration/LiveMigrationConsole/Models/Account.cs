@@ -1,4 +1,5 @@
 ﻿using NeuroSpeech.EFCoreLiveMigration;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -25,14 +26,7 @@ namespace LiveMigrationConsole.Models
         public decimal Balance { get; set; }
 
         public decimal? Total { get; set; }
-    }
 
-
-    [Table("Talents")]
-    public class Talent {
-
-        [Key, DatabaseGenerated(DatabaseGeneratedOption.None)]
-        public long TalentID { get; set; }
-
+        public ICollection<AccountEvent> Events { get; set; }
     }
 }

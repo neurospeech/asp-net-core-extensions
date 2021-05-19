@@ -1,11 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using System;
 using System.Collections.Generic;
 using System.Text;
 
 namespace LiveMigrationConsole.Models
 {
-    public class ERPContext : DbContext
+    public partial class ERPContext : DbContext
     {
 
         public ERPContext(DbContextOptions options):base(options)
@@ -19,14 +18,22 @@ namespace LiveMigrationConsole.Models
 
         public DbSet<Config> Configs { get; set; }
 
+        public DbSet<CalendarEvent> CalendarEvents { get; set; }
+
         public DbSet<Talent> Talents { get; set; }
 
         public DbSet<ProductFeature> Features { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<ProductFeature>().HasKey("ProductID", "FeatureID");
+            modelBuilder.Entity<ProductFeature>().HasKey(x => new { 
+                x.ProductID,
+                x.FeatureID
+            });
         }
 
+
     }
+
+
 }
