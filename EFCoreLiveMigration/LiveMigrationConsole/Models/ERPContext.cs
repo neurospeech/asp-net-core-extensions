@@ -24,6 +24,8 @@ namespace LiveMigrationConsole.Models
 
         public DbSet<ProductFeature> Features { get; set; }
 
+        public DbSet<Order> Orders { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<ProductFeature>().HasKey(x => new { 

@@ -32,6 +32,12 @@ namespace LiveMigrationConsole
 
                 db.Accounts.Add(acc);
 
+                db.Orders.Add(new Order { 
+                    Billing = new Address { },
+                    Shipping = new Address { }
+                });
+                
+
                 db.SaveChanges();
 
             }

@@ -21,10 +21,9 @@ namespace NeuroSpeech.EFCoreLiveMigration.PostGreSql
             return $"\"{name.Trim('\"')}\"";
         }
 
-        protected override void AddColumn(IProperty property)
+        protected override void AddColumn(DbColumnInfo property)
         {
-            var tableName = GetTableNameWithSchema(property.DeclaringEntityType);
-            Run($"ALTER TABLE {tableName} ADD " + ToColumn(property));
+            Run($"ALTER TABLE {property.Table.EscapedNameWithSchema} ADD " + ToColumn(property));
         }        
 
         protected override void CreateIndex(SqlIndexEx index)
@@ -41,16 +40,12 @@ namespace NeuroSpeech.EFCoreLiveMigration.PostGreSql
             Run(TemplateQuery.New($"DROP INDEX IF EXISTS {Literal.DoubleQuoted(index.Name)}"));
         }
 
-        protected override void EnsureCreated(IEntityType entity)
+        protected override void CreateTable(DbTableInfo entity, List<DbColumnInfo> pkeys)
         {
-            var pkeys = entity.GetProperties()
-                .Where(x => x.IsPrimaryKey())
-                .ToList();
+            var tableName = entity.EscapedNameWithSchema;
 
-            var tableName = GetTableNameWithSchema(entity);
-
-            string createTable = $" CREATE TABLE IF NOT EXISTS {tableName} ({ string.Join(",", pkeys.Select(c => ToColumn(c))) }, " +
-                 $"CONSTRAINT {entity.GetTableName()}_pkey PRIMARY KEY( { string.Join(", ", pkeys.Select(x => this.Escape(x.ColumnName()))) } ))";
+            string createTable = $" CREATE TABLE {tableName} ({ string.Join(",", pkeys.Select(c => ToColumn(c))) }, " +
+                 $"CONSTRAINT {entity.TableName}_pkey PRIMARY KEY( { string.Join(", ", pkeys.Select(x => x.EscapedColumnName)) } ))";
 
             Run(createTable);
         }
@@ -66,68 +61,58 @@ namespace NeuroSpeech.EFCoreLiveMigration.PostGreSql
 
         protected override bool IsDecimal(string n) => n.Equals("numeric", StringComparison.OrdinalIgnoreCase);
 
-        protected override string LoadTableColumns(IEntityType declaringEntityType)
+        protected override string LoadTableColumns(DbTableInfo table)
         {
             return Scripts.SqlServerGetSchema;
         }
 
-        protected override void RenameColumn(IProperty property, string postFix)
+        protected override void RenameColumn(DbColumnInfo property, string postFix)
         {
-            var table = GetTableNameWithSchema(property.DeclaringEntityType);
-            var name = property.GetColumnName();
+            var table = property.Table.EscapedNameWithSchema;
+            var name = property.ColumnName;
             var newName = name + postFix;
             Run( $"ALTER TABLE {table} RENAME {Escape(name)} TO {Escape(newName)}");
         }
 
-        protected override string ToColumn(IProperty c, IEntityType entity = null)
+        protected override string ToColumn(DbColumnInfo c)
         {
-            var columnName = c.ColumnName();
+            var name = $"{c.EscapedColumnName} {c.DataType}";
 
-            var dataType = c.GetColumnTypeForSql();
-
-            var dataLength = c.GetMaxLength() ?? 0;
-
-            var name = $"{this.Escape(columnName)} {dataType}";
-
-            if (IsText(dataType))
+            if (c.DataLength != null)
             {
-                if (dataLength > 0 && dataLength < int.MaxValue)
+                if (c.DataLength > 0 && c.DataLength < int.MaxValue)
                 {
-                    name += $"({ dataLength })";
+                    name += $"({ c.DataLength })";
                 }
                 else
                 {
                     name += "(MAX)";
                 }
             }
-            if (IsDecimal(dataType))
+            if (c.Precision != null)
             {
                 var np = 18;
                 var nps = 2;
 
                 name += $"({ np },{ nps })";
             }
-            if (!c.IsKey())
+            if (!c.IsKey)
             {
                 // lets allow nullable to every field...
-                if (!c.IsColumnNullable())
+                if (!c.IsNullable)
                 {
                     name += " NOT NULL ";
                 }
             }
 
-            var isIdentity = c.PropertyInfo
-                ?.GetCustomAttribute<DatabaseGeneratedAttribute>()
-                ?.DatabaseGeneratedOption == DatabaseGeneratedOption.Identity;
-
-            if (isIdentity)
+            if (c.IsIdentity)
             {
                 name += " GENERATED ALWAYS AS IDENTITY ";
             }
 
-            if (!string.IsNullOrWhiteSpace(c.GetDefaultValueSql()))
+            if (!string.IsNullOrWhiteSpace(c.DefaultValue))
             {
-                name += " DEFAULT " + c.GetDefaultValueSql();
+                name += " DEFAULT " + c.DefaultValue;
             }
             return name;
 

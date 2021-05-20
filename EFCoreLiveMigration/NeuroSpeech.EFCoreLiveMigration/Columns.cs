@@ -13,24 +13,24 @@ namespace NeuroSpeech.EFCoreLiveMigration
         {
             this.modelMigration = modelMigration;
             tables = new Dictionary<string, List<Column>>();
-            indexes = new Dictionary<string, List<DbIndex>>();    
+            indexes = new Dictionary<string, List<DbIndex>>();
         }
 
-        public Dictionary<string,List<Column>> tables { get; set; }
+        public Dictionary<string, List<Column>> tables { get; set; }
 
-        public Dictionary<string,List<DbIndex>> indexes { get; set; }
+        public Dictionary<string, List<DbIndex>> indexes { get; set; }
 
 
-        public Column this[IProperty property]
+        public Column this[DbColumnInfo property]
         {
             get
             {
-                var tableName = property.DeclaringEntityType.GetSchemaOrDefault() + "." + property.DeclaringEntityType.GetTableName();
-                if(!tables.TryGetValue(tableName, out var columns))
+                var tableName = property.Table.EscapedNameWithSchema + "." + property.EscapedColumnName;
+                if (!tables.TryGetValue(tableName, out var columns))
                 {
-                    columns = LoadColumns(property.DeclaringEntityType);
+                    columns = LoadColumns(property.Table);
                 }
-                return columns.FirstOrDefault(x => x.ColumnName == property.ColumnName());
+                return columns.FirstOrDefault(x => x.ColumnName == property.ColumnName);
             }
         }
 
@@ -39,7 +39,7 @@ namespace NeuroSpeech.EFCoreLiveMigration
             get
             {
                 var tableName = index.DeclaringEntityType.GetSchemaOrDefault() + "." + index.DeclaringEntityType.GetTableName();
-                if(!indexes.TryGetValue(tableName,out var ind))
+                if (!indexes.TryGetValue(tableName, out var ind))
                 {
                     ind = LoadIndexes(index.DeclaringEntityType);
                 }
@@ -82,15 +82,13 @@ namespace NeuroSpeech.EFCoreLiveMigration
             return list;
         }
 
-        private List<Column> LoadColumns(IEntityType declaringEntityType)
+        private List<Column> LoadColumns(DbTableInfo table)
         {
             List<Column> columns = new List<Column>();
-            string sqlColumns = modelMigration.LoadTableColumns(declaringEntityType);
-            var tableName = declaringEntityType.GetTableName();
-            var schameName = declaringEntityType.GetSchemaOrDefault();
-            using (var reader = modelMigration.Read(sqlColumns, new Dictionary<string, object> { 
-                { "@TableName", tableName } ,
-                { "@SchemaName", schameName }
+            string sqlColumns = modelMigration.LoadTableColumns(table);
+            using (var reader = modelMigration.Read(sqlColumns, new Dictionary<string, object> {
+                { "@TableName", table.TableName } ,
+                { "@SchemaName", table.Schema }
             }))
             {
 
@@ -114,6 +112,22 @@ namespace NeuroSpeech.EFCoreLiveMigration
 
             }
             return columns;
+        }
+
+        public void Clear(DbTableInfo entity)
+        {
+            tables.Remove(entity.EscapedNameWithSchema);
+        }
+
+        internal bool Exists(DbTableInfo entity)
+        {
+            var tableName = entity.EscapedNameWithSchema;
+            if (!tables.TryGetValue(tableName, out var columns))
+            {
+                columns = LoadColumns(entity);
+                tables[tableName] = columns;
+            }
+            return columns.Count > 0;
         }
     }
 }

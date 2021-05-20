@@ -20,7 +20,7 @@ namespace NeuroSpeech.EFCoreLiveMigration
         }
 
 
-        internal protected override string LoadTableColumns(IEntityType declaringEntityType)
+        internal protected override string LoadTableColumns(DbTableInfo declaringEntityType)
         {
             return Scripts.SqlServerGetSchema;
         }
@@ -35,35 +35,26 @@ namespace NeuroSpeech.EFCoreLiveMigration
             return $"[{name}]";
         }
 
-        protected override void AddColumn(IProperty property)
+        protected override void AddColumn(DbColumnInfo property)
         {
-            Run($"ALTER TABLE {GetTableNameWithSchema(property.DeclaringEntityType)} ADD " 
+            Run($"ALTER TABLE {property.Table.EscapedNameWithSchema} ADD " 
                 + ToColumn(property));
         }
 
-        protected override void RenameColumn(IProperty property, string postFix)
+        protected override void RenameColumn(DbColumnInfo property, string postFix)
         {
-            Run($"EXEC sp_rename '{GetTableNameWithSchema(property.DeclaringEntityType)}.{property.ColumnName()}', '{property.ColumnName()}{postFix}'");
+            Run($"EXEC sp_rename '{property.Table.Schema}.{property.Table.TableName}.{property.ColumnName}', '{property.ColumnName}{postFix}'");
         }
 
-        protected override void EnsureCreated(IEntityType entity)
+        protected override void CreateTable(
+            DbTableInfo entity, 
+            List<DbColumnInfo> keys)
         {
-            var pkeys = entity
-                .GetProperties()
-                .Where(x => x.IsKey())
-                .ToList();
-
-            var tableName = entity.GetTableName();
-            var schema = entity.GetSchemaOrDefault();
-            var existsCheck = TemplateQuery.New($"SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME={tableName} AND TABLE_SCHEMA={schema}");
-
             var createTable = TemplateQuery.Literal(@$"
-                    CREATE TABLE {GetTableNameWithSchema(entity)} ({ string.Join(",", pkeys.Select(c => ToColumn(c, entity))) }, 
-                    PRIMARY KEY( { string.Join(", ", pkeys.Select(x => this.Escape(x.ColumnName()))) } ))");
+                    CREATE TABLE {entity.EscapedNameWithSchema} ({ string.Join(",", keys.Select(ToColumn)) }, 
+                    PRIMARY KEY( { string.Join(", ", keys.Select(x => x.EscapedColumnName )) } ))");
 
-            var finalQuery = TemplateQuery.New( $"IF NOT EXISTS ({existsCheck}) {createTable}");
-
-            Run(finalQuery);
+            Run(createTable);
         }
 
 
@@ -78,38 +69,33 @@ namespace NeuroSpeech.EFCoreLiveMigration
             return $"{Escape(entity.GetSchemaOrDefault())}.{Escape(entity.GetTableName())}";
         }
 
-        protected override string ToColumn(IProperty c, IEntityType entity = null)
+        protected override string ToColumn(DbColumnInfo c)
         {
-            var columnName = c.ColumnName();
 
-            var dataType = c.GetColumnTypeForSql();
+            var name = $"{c.EscapedColumnName} {c.DataType}";
 
-            var dataLength = c.GetMaxLength() ?? 0;
-
-            var name = $"{this.Escape(columnName)} {dataType}";
-
-            if (IsText(dataType))
+            if (c.DataLength != null)
             {
-                if (dataLength > 0 && dataLength < int.MaxValue)
+                if (c.DataLength > 0 && c.DataLength < int.MaxValue)
                 {
-                    name += $"({ dataLength })";
+                    name += $"({ c.DataLength })";
                 }
                 else
                 {
                     name += "(MAX)";
                 }
             }
-            if (IsDecimal(dataType))
+            if (c.Precision != null)
             {
-                var np = 18;
-                var nps = 2;
+                var np = c.Precision ?? 18;
+                var nps = c.DecimalScale ?? 2;
 
                 name += $"({ np },{ nps })";
             }
-            if (!c.IsKey())
+            if (!c.IsKey)
             {
                 // lets allow nullable to every field...
-                if (c.IsColumnNullable())
+                if (c.IsNullable)
                 {
                     name += " NULL ";
                 }
@@ -119,19 +105,14 @@ namespace NeuroSpeech.EFCoreLiveMigration
                 }
             }
 
-            var isIdentity = c.DeclaringEntityType == entity && c.GetValueGenerationStrategy() == SqlServerValueGenerationStrategy.IdentityColumn;
-            //var isIdentity = c.PropertyInfo
-            //    ?.GetCustomAttribute<DatabaseGeneratedAttribute>()
-            //    ?.DatabaseGeneratedOption == DatabaseGeneratedOption.Identity;
-
-            if (isIdentity)
+            if (c.IsIdentity)
             {
                 name += " Identity ";
             }
 
-            if (!string.IsNullOrWhiteSpace(c.GetDefaultValueSql()))
+            if (!string.IsNullOrWhiteSpace(c.DefaultValue))
             {
-                name += " DEFAULT " + c.GetDefaultValueSql();
+                name += " DEFAULT " + c.DefaultValue;
             }
             return name;
         }

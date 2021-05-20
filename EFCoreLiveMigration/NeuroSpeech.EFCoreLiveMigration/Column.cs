@@ -17,8 +17,9 @@ namespace NeuroSpeech.EFCoreLiveMigration
         public decimal? NumericScale;
         public bool IsIdentity;
 
-        internal bool IsSame(IProperty x)
+        internal bool IsSame(DbColumnInfo column)
         {
+            var x = column.Property;
             if (!x.GetColumnTypeForSql().EqualsIgnoreCase(this.DataType))
                 return false;
             int xLength = x.GetMaxLength() ?? 0;

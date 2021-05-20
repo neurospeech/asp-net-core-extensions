@@ -12,10 +12,14 @@ namespace NeuroSpeech.EFCoreLiveMigration
         public readonly IReadOnlyList<IProperty> Properties;
         public readonly IReadOnlyList<string> IncludedProperties;
         public readonly string Filter;
+        public readonly DbTableInfo Table;
+        public readonly IIndex Index;
 
-        public SqlIndexEx(IIndex index, ModelMigrationBase modelMigration)
+        public SqlIndexEx(DbTableInfo table, IIndex index, ModelMigrationBase modelMigration)
         {
-            this.Name = index.GetName();
+            this.Table = table;
+            this.Index = index;
+            this.Name = index.GetDatabaseName();
             this.DeclaringEntityType = index.DeclaringEntityType;
             this.Properties = index.Properties;
             this.IncludedProperties = index.GetIncludeProperties();
@@ -28,7 +32,7 @@ namespace NeuroSpeech.EFCoreLiveMigration
                 if(index.DeclaringEntityType.BaseType != null)
                 {
                     this.Filter = "(" + string.Join(" AND ", 
-                        Properties.Select(x => modelMigration.Escape(x.GetColumnName()) + " IS NOT NULL" )
+                        Properties.Select(x => modelMigration.Escape(x.ColumnName()) + " IS NOT NULL" )
                         ) + ")";
                 }
             }

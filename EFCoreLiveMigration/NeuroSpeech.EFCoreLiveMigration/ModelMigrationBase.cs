@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿#nullable enable
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using NeuroSpeech.TemplatedQuery;
 using System;
@@ -16,7 +17,9 @@ namespace NeuroSpeech.EFCoreLiveMigration
 
         protected internal readonly DbContext context;
         private readonly Columns columns;
-        protected DbTransaction Transaction { get; private set; }
+        protected DbTransaction? Transaction { get; private set; }
+
+        internal MigrationEventList handler = new MigrationEventList();
 
         public ModelMigrationBase(DbContext context)
         {
@@ -24,7 +27,13 @@ namespace NeuroSpeech.EFCoreLiveMigration
             this.columns = new Columns(this);
         }
 
-        internal protected abstract string LoadTableColumns(IEntityType declaringEntityType);
+        public ModelMigrationBase AddEvent<T>(MigrationEvents<T> events)
+        {
+            handler.Add(events);
+            return this;
+        }
+
+        internal protected abstract string LoadTableColumns(DbTableInfo table);
 
         protected abstract bool IsText(string n);
 
@@ -37,11 +46,38 @@ namespace NeuroSpeech.EFCoreLiveMigration
 
 
 
+        private List<IEntityType> GetEntityTypes()
+        {
+            var r = new List<IEntityType>();
+            var all = context.Model.GetEntityTypes();
+            var pending = new List<IEntityType>();
+            var owned = new List<IEntityType>();
+            foreach(var entity in all)
+            {
+                if(entity.BaseType != null)
+                {
+                    pending.Add(entity);
+                    continue;
+                }
+                if(entity.ClrType.GetCustomAttribute<OwnedAttribute>() != null)
+                {
+                    owned.Add(entity);
+                    continue;
+                }
+                r.Add(entity);
+            }
+
+            r.AddRange(pending);
+            r.AddRange(owned);
+            return r;
+        }
 
         public void Migrate()
         {
 
-            foreach (var entity in context.Model.GetEntityTypes())
+            var entities = GetEntityTypes();
+
+            foreach (var entity in entities)
             {
                 try
                 {
@@ -55,7 +91,8 @@ namespace NeuroSpeech.EFCoreLiveMigration
                     {
                         this.Transaction = tx;
 
-                        MigrateEntity(entity);
+                        var table = new DbTableInfo(entity, Escape);
+                        MigrateEntity(table);
 
                         tx.Commit();
                     }
@@ -120,10 +157,8 @@ namespace NeuroSpeech.EFCoreLiveMigration
             }
         }
 
-        protected virtual void EnsureCreated(IProperty property)
+        protected virtual void EnsureCreated(DbColumnInfo property)
         {
-            var fullName = GetTableNameWithSchema(property.DeclaringEntityType) + "." + property.ColumnName();
-
             var existing = columns[property];
             if (existing != null && existing.IsSame(property))
             {
@@ -135,43 +170,60 @@ namespace NeuroSpeech.EFCoreLiveMigration
                 string postFix = $"_{DateTime.UtcNow.Ticks}";
                 // rename...
                 RenameColumn(property, postFix);
-
-                Console.WriteLine($"Existing Column {fullName} renamed to {fullName}{postFix}.");
             }
 
             AddColumn(property);
 
-            Console.WriteLine($"Column {fullName} Created Successfully.");
+            if(existing != null)
+            {
+                property.Table.ColumnsRenamed.Add((existing, property));
+            } else
+            {
+                property.Table.ColumnsAdded.Add(property);
+            }
+            handler.OnColumnAdded(property, existing);
+
         }
 
         internal protected abstract string LoadIndexes(IEntityType entity);
 
-        protected virtual void MigrateEntity(IEntityType entity)
+        protected virtual void MigrateEntity(DbTableInfo table)
         {
-            var table = GetTableNameWithSchema(entity);
-            EnsureCreated(entity);
-            
-            Console.WriteLine($"{table} Sync Sucessful.");
 
-            foreach (var property in entity.GetProperties().Where(x => !x.IsKey()))
+            this.columns.Clear(table);
+
+            if (!this.columns.Exists(table))
             {
-                EnsureCreated(property);
+                var keys = table.EntityType.GetProperties().Where(x => x.IsKey())
+                    .Select(x => new DbColumnInfo(table, x, Escape))
+                    .ToList();
+                CreateTable(table, keys);
+                handler.OnTableCreated(table);
+            }
+
+            foreach (var property in table.EntityType.GetProperties().Where(x => !x.IsKey()))
+            {
+                var column = new DbColumnInfo(table, property, Escape);
+                EnsureCreated(column);
             }
 
             // create indexes...
-            foreach(var index in entity.GetIndexes())
+            foreach(var index in table.EntityType.GetIndexes())
             {
-                EnsureCreated(index);
+                var i = new SqlIndexEx(table,index, this);
+                EnsureCreated(i);
             }
+
+            handler.OnTableModified(table, table.ColumnsAdded, table.ColumnsRenamed, table.IndexedUpdated);
         }
 
-        protected void EnsureCreated(IIndex index)
-        {
-            var fullName = GetTableNameWithSchema(index.DeclaringEntityType) + "." + index.GetName();
-            var i = new SqlIndexEx(index, this);
+        protected abstract void CreateTable(DbTableInfo entity, List<DbColumnInfo> keys);
 
-            var existing = columns[index];
-            if (existing != null && existing.IsSame(i, this))
+        protected void EnsureCreated(SqlIndexEx index)
+        {
+
+            var existing = columns[index.Index];
+            if (existing != null && existing.IsSame(index, this))
             {
                 return;
             }
@@ -179,23 +231,22 @@ namespace NeuroSpeech.EFCoreLiveMigration
             if (existing != null)
             {
                 // rename...
-                DropIndex(i);
-                Console.WriteLine($"Existing Index {fullName} dropped.");
+                DropIndex(index);
+                handler.OnIndexDropped(index);
             }
 
-            CreateIndex(i);
-            Console.WriteLine($"Index {fullName} Created successfully.");
+            CreateIndex(index);
+            handler.OnIndexCreated(index);
+            index.Table.IndexedUpdated.Add((existing != null, index));
         }
 
         protected abstract void DropIndex(SqlIndexEx index);
         protected abstract void CreateIndex(SqlIndexEx index);
-        protected abstract void EnsureCreated(IEntityType entity);
+        protected abstract void AddColumn(DbColumnInfo property);
 
-        protected abstract void AddColumn(IProperty property);
-
-        protected abstract void RenameColumn(IProperty property, string postFix);
+        protected abstract void RenameColumn(DbColumnInfo property, string postFix);
 
 
-        protected abstract string ToColumn(IProperty c, IEntityType entity = null);
+        protected abstract string ToColumn(DbColumnInfo column);
     }
 }
