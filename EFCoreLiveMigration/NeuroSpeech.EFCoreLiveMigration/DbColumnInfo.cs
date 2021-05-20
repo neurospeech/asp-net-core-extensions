@@ -2,6 +2,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using System;
+using System.ComponentModel;
+using System.Reflection;
 
 namespace NeuroSpeech.EFCoreLiveMigration
 {
@@ -20,7 +22,7 @@ namespace NeuroSpeech.EFCoreLiveMigration
         public readonly bool IsKey;
         public readonly bool IsIdentity;
         public readonly bool IsNullable;
-        public readonly string DefaultValue;
+        public readonly string? DefaultValue;
 
         public DbColumnInfo(
             DbTableInfo table, 
@@ -34,15 +36,40 @@ namespace NeuroSpeech.EFCoreLiveMigration
             this.EscapedColumnName = escape(this.ColumnName);
             this.EscapedTableNameAndColumnName = table.EscapedTableName + "." + this.EscapedColumnName;
 
+            var (length, d) = property.GetColumnDataLength();
+
             this.DataType = property.GetColumnTypeForSql();
-            this.DataLength = property.GetMaxLength() 
-                ?? (property.ClrType == typeof(string) ? (int?)int.MaxValue : null);
-            this.Precision = property.GetPrecision();
-            this.DecimalScale = property.GetScale();
+            if (property.ClrType.IsAssignableFrom(typeof(decimal)))
+            {
+                var ps = property.GetScale();
+                var pp = property.GetPrecision();
+                this.Precision = pp ?? length;
+                this.DecimalScale = ps ?? d;
+            }
+            else
+            {
+                this.DataLength = length
+                    ?? (property.ClrType == typeof(string) ? (int?)int.MaxValue : null);
+            }
             this.IsKey = property.IsKey();
             this.IsIdentity = property.IsIdentityColumn(table.EntityType);
             this.IsNullable = property.IsColumnNullable();
             this.DefaultValue = property.GetDefaultValueSql();
+
+            if(this.DefaultValue == null)
+            {
+                var dv =  property.PropertyInfo?.GetCustomAttribute<DefaultValueAttribute>();
+                if(dv?.Value != null)
+                {
+                    if (dv.Value is string sv)
+                    {
+                        this.DefaultValue = sv;
+                    } else
+                    {
+                        throw new InvalidOperationException($"Default value must be provided in string literal equivalent in SQL");
+                    }
+                }
+            }
         }
     }
 }

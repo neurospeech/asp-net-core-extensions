@@ -69,6 +69,16 @@ namespace NeuroSpeech.EFCoreLiveMigration
             return $"{Escape(entity.GetSchemaOrDefault())}.{Escape(entity.GetTableName())}";
         }
 
+        protected internal override bool HasAnyRows(DbTableInfo table)
+        {
+            var sql = $"SELECT TOP (1) 1 FROM {table.EscapedNameWithSchema}";
+            var cmd = CreateCommand(sql);
+            var i = cmd.ExecuteScalar();
+            if (i == null)
+                return false;
+            return true;
+        }
+
         protected override string ToColumn(DbColumnInfo c)
         {
 

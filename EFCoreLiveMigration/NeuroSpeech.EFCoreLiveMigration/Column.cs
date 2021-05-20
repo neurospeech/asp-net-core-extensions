@@ -36,15 +36,15 @@ namespace NeuroSpeech.EFCoreLiveMigration
             if (IsNullable != x.IsColumnNullable())
                 return false;
 
-            var xColumnDefault = x.GetDefaultValueSql() ?? x.GetDefaultValue()?.ToString();
-            if (!x.IsColumnNullable())
-            {
-                if (!(string.IsNullOrWhiteSpace(ColumnDefault)
-                    && string.IsNullOrWhiteSpace(xColumnDefault)))
-                {
-                    return ColumnDefault == xColumnDefault;
-                }
-            }
+            //var xColumnDefault = x.GetDefaultValueSql() ?? x.GetDefaultValue()?.ToString();
+            //if (!x.IsColumnNullable())
+            //{
+            //    if (!(string.IsNullOrWhiteSpace(ColumnDefault)
+            //        && string.IsNullOrWhiteSpace(xColumnDefault)))
+            //    {
+            //        return ColumnDefault == xColumnDefault;
+            //    }
+            //}
             return true;
         }
     }

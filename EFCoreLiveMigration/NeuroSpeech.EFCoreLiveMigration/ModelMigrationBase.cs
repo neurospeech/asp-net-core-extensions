@@ -105,7 +105,7 @@ namespace NeuroSpeech.EFCoreLiveMigration
 
         }
 
-        public virtual DbCommand CreateCommand(string command, IEnumerable<KeyValuePair<string, object>> plist = null)
+        public virtual DbCommand CreateCommand(string command, IEnumerable<KeyValuePair<string, object>>? plist = null)
         {
             var cmd = context.Database.GetDbConnection().CreateCommand();
             cmd.CommandText = command;
@@ -157,13 +157,23 @@ namespace NeuroSpeech.EFCoreLiveMigration
             }
         }
 
-        protected virtual void EnsureCreated(DbColumnInfo property)
+        protected virtual void EnsureCreated(DbColumnInfo property, bool forceDefault)
         {
             var existing = columns[property];
             if (existing != null && existing.IsSame(property))
             {
                 return;
             }
+
+            if (forceDefault)
+            {
+                if (!property.IsNullable)
+                {
+                    if (property.DefaultValue == null)
+                        throw new InvalidOperationException($"You must specify the default value for property {property.TableNameAndColumnName} as table contains rows");
+                }
+            }
+
 
             if (existing != null)
             {
@@ -201,10 +211,12 @@ namespace NeuroSpeech.EFCoreLiveMigration
                 handler.OnTableCreated(table);
             }
 
+            var forceDefault = HasAnyRows(table);
+
             foreach (var property in table.EntityType.GetProperties().Where(x => !x.IsKey()))
             {
                 var column = new DbColumnInfo(table, property, Escape);
-                EnsureCreated(column);
+                EnsureCreated(column, forceDefault);
             }
 
             // create indexes...
@@ -216,6 +228,8 @@ namespace NeuroSpeech.EFCoreLiveMigration
 
             handler.OnTableModified(table, table.ColumnsAdded, table.ColumnsRenamed, table.IndexedUpdated);
         }
+
+        internal protected abstract bool HasAnyRows(DbTableInfo table);
 
         protected abstract void CreateTable(DbTableInfo entity, List<DbColumnInfo> keys);
 

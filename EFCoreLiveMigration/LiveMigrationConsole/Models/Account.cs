@@ -1,5 +1,6 @@
 ﻿using NeuroSpeech.EFCoreLiveMigration;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -17,12 +18,13 @@ namespace LiveMigrationConsole.Models
         [OldName("AccountName")]
         public string DisplayName { get; set; }
 
-        [MaxLength(10)]
+        [Column(TypeName = "varchar(20)")]
         public string AccountType { get; set; }
 
         [InverseProperty(nameof(Product.Vendor))]
         public Product[] VendorProducts { get; set; }
 
+        [Column(TypeName = "decimal(18,2)")]
         public decimal Balance { get; set; }
 
         public decimal? Total { get; set; }
