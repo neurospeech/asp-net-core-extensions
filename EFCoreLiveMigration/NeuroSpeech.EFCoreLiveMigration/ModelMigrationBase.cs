@@ -159,6 +159,9 @@ namespace NeuroSpeech.EFCoreLiveMigration
 
         protected virtual void EnsureCreated(DbColumnInfo property, bool forceDefault)
         {
+            if (property.Property.DeclaringEntityType != property.Table.EntityType)
+                return;
+
             var existing = columns[property];
             if (existing != null && existing.IsSame(property))
             {
