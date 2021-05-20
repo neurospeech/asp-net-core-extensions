@@ -122,5 +122,15 @@ namespace NeuroSpeech.EFCoreLiveMigration.PostGreSql
         {
             return NeuroSpeech.EFCoreLiveMigration.PostGreSql.Scripts.SqlServerGetIndexes;
         }
+
+        protected override bool HasAnyRows(DbTableInfo table)
+        {
+            var sql = $"SELECT 1 FROM {table.EscapedNameWithSchema} LIMIT 1";
+            var cmd = CreateCommand(sql);
+            var i = cmd.ExecuteScalar();
+            if (i == null)
+                return false;
+            return true;
+        }
     }
 }
