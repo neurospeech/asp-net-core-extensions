@@ -16,7 +16,13 @@ namespace NeuroSpeech.EFCoreLiveMigration
             if (!thisColumns.EqualsIgnoreCase(indexColumns))
                 return false;
             var existingFilter = index.GetFilter();
-            return Filter == existingFilter;
+            if (Filter == null)
+                return existingFilter == null;
+            if (existingFilter == null)
+                return false;
+            if (Filter.Trim('(', ')').Trim().ToLower() == existingFilter.Trim('(',')').Trim().ToLower())
+                return true;
+            return false;
         }
     }
 }

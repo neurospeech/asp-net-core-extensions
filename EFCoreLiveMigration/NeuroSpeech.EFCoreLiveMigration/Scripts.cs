@@ -44,7 +44,6 @@ namespace NeuroSpeech.EFCoreLiveMigration
 					sys.schemas s ON t.schema_id = s.schema_id
 			WHERE 
 					ind.is_primary_key = 0 
-					AND ind.is_unique = 0 
 					AND ind.is_unique_constraint = 0 
 					AND t.is_ms_shipped = 0 
 					AND t.name = @TableName

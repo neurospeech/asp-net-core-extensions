@@ -12,6 +12,7 @@ namespace NeuroSpeech.EFCoreLiveMigration
         public readonly IReadOnlyList<IProperty> Properties;
         public readonly IReadOnlyList<string> IncludedProperties;
         public readonly string Filter;
+        public readonly bool Unique;
         public readonly DbTableInfo Table;
         public readonly IIndex Index;
 
@@ -24,6 +25,7 @@ namespace NeuroSpeech.EFCoreLiveMigration
             this.Properties = index.Properties;
             this.IncludedProperties = index.GetIncludeProperties();
             this.Filter = index.GetFilter();
+            this.Unique = index.IsUnique;
 
             if(this.Filter == null)
             {

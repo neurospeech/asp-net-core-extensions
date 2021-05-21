@@ -21,6 +21,9 @@ namespace LiveMigrationConsole.Models
         [Column(TypeName = "varchar(20)")]
         public string AccountType { get; set; }
 
+        [MaxLength(200)]
+        public string EmailAddress { get; set; }
+
         [InverseProperty(nameof(Product.Vendor))]
         public Product[] VendorProducts { get; set; }
 

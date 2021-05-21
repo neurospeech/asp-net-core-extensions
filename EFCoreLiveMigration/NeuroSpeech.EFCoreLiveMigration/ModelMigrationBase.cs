@@ -225,7 +225,7 @@ namespace NeuroSpeech.EFCoreLiveMigration
             // create indexes...
             foreach(var index in table.EntityType.GetIndexes())
             {
-                var i = new SqlIndexEx(table,index, this);
+               var i = new SqlIndexEx(table,index, this);
                 EnsureCreated(i);
             }
 
@@ -238,8 +238,7 @@ namespace NeuroSpeech.EFCoreLiveMigration
 
         protected void EnsureCreated(SqlIndexEx index)
         {
-
-            var existing = columns[index.Index];
+            var existing = columns[index];
             if (existing != null && existing.IsSame(index, this))
             {
                 return;

@@ -25,7 +25,7 @@ namespace NeuroSpeech.EFCoreLiveMigration
         {
             get
             {
-                var tableName = property.Table.EscapedNameWithSchema + "." + property.EscapedColumnName;
+                var tableName = property.Table.EscapedNameWithSchema;
                 if (!tables.TryGetValue(tableName, out var columns))
                 {
                     columns = LoadColumns(property.Table);
@@ -34,16 +34,16 @@ namespace NeuroSpeech.EFCoreLiveMigration
             }
         }
 
-        public DbIndex this[IIndex index]
+        public DbIndex this[SqlIndexEx index]
         {
             get
             {
-                var tableName = index.DeclaringEntityType.GetSchemaOrDefault() + "." + index.DeclaringEntityType.GetTableName();
+                var tableName = index.Table.EscapedNameWithSchema;
                 if (!indexes.TryGetValue(tableName, out var ind))
                 {
                     ind = LoadIndexes(index.DeclaringEntityType);
                 }
-                return ind.FirstOrDefault(x => x.Name == index.GetName());
+                return ind.FirstOrDefault(x => x.Name == index.Name);
             }
         }
 
@@ -117,6 +117,7 @@ namespace NeuroSpeech.EFCoreLiveMigration
         public void Clear(DbTableInfo entity)
         {
             tables.Remove(entity.EscapedNameWithSchema);
+            indexes.Remove(entity.EscapedNameWithSchema);
         }
 
         internal bool Exists(DbTableInfo entity)
@@ -129,5 +130,6 @@ namespace NeuroSpeech.EFCoreLiveMigration
             }
             return columns.Count > 0;
         }
+
     }
 }

@@ -33,6 +33,13 @@ namespace LiveMigrationConsole.Models
                 x.FeatureID
             });
 
+            modelBuilder.Entity<Account>()
+                .HasIndex(x => new {
+                    x.EmailAddress,
+                    x.AccountType
+                })
+                .IsUnique();
+
             modelBuilder.Entity<Account>().ToTable("Accounts");
             modelBuilder.Entity<Talent>().ToTable("Talents");
         }

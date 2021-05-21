@@ -138,7 +138,8 @@ namespace NeuroSpeech.EFCoreLiveMigration
             var columns = index.Properties;
             var newColumns = columns.Select(x => $"{Escape(x.ColumnName())} ASC").ToJoinString();
             var filter = index.GetFilter() == null ? "" : $" WHERE {index.GetFilter()}";
-            Run(@$"CREATE NONCLUSTERED INDEX {name}
+            var indexType = index.Unique ? " UNIQUE " : " NONCLUSTERED ";
+            Run(@$"CREATE {indexType} INDEX {name}
                 ON {GetTableNameWithSchema(index.DeclaringEntityType)} ({ newColumns })
                 {filter}");
 
