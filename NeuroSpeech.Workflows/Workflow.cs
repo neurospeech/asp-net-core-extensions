@@ -342,6 +342,59 @@ namespace NeuroSpeech.Workflows
             }
         }
 
+        public async Task<(bool TimedOut, R? Result, string? Name)> EventSwitchAsync<T, R>(
+            TimeSpan maxWait,
+            T input,
+            params Delegate[] methodNames)
+        {
+            if (context == null)
+                throw new InvalidOperationException($"You cannot wait for event in the activity");
+            if (maxWait.TotalMilliseconds <= 0)
+                throw new ArgumentOutOfRangeException($"maxWait cannot be equal to or less than zero");
+
+            var timer = this.context.CreateTimer(this.context.CurrentUtcDateTime.Add(maxWait), "");
+
+            List<EventQueue> list = new List<EventQueue>(methodNames.Length);
+            List<Task> tasks = new List<Task>(methodNames.Length + 1) {
+                timer
+            };
+            CancellationTokenSource c = new CancellationTokenSource();
+
+            string? firedEvent = null;
+
+
+            foreach (var m in methodNames)
+            {
+                var e = GetEvent(m.Method.Name);
+                list.Add(e);
+                var (we, ct) = e.Request();
+                ct.Register(() => c.Cancel());
+
+                async Task<string> MarkEvent()
+                {
+                    await we!;
+                    firedEvent = m.Method.Name;
+                    return we.Result;
+                }
+
+                tasks.Add(MarkEvent());
+            }
+
+            await Task.WhenAll(tasks);
+
+            if (timer.IsCompleted)
+            {
+                // timed out...
+                return (true, default, firedEvent);
+            }
+
+            var fx = this.GetType().GetMethod(firedEvent).CreateDelegate(typeof(Func<T, Task<R>>)) as Func<T, Task<R>>;
+            var result = await fx!(input);
+
+            return (false, result, firedEvent);
+
+        }
+
         public async Task<(bool TimedOut,R? Result, string? Name)> EventSwitchAsync<T, R>(
             TimeSpan maxWait, 
             T input,
