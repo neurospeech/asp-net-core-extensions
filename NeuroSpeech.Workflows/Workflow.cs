@@ -104,10 +104,12 @@ namespace NeuroSpeech.Workflows
 
         internal override void OnEvent(string name, string input)
         {
-            if(events.TryGetValue(name, out var we))
+            if(!events.TryGetValue(name, out var we))
             {
-                we.SetEvent(input);
+                we = new EventQueue();
+                events[name] = we;
             }
+            we.SetEvent(input);
         }
 
         /// <summary>
@@ -195,6 +197,17 @@ namespace NeuroSpeech.Workflows
             this.events.TryGetValue(handler.Name, out var ve);
             return ve;
         }
+
+        private EventQueue GetEvent(string name)
+        {
+            if(!this.events.TryGetValue(name, out var ve))
+            {
+                ve = new EventQueue();
+                this.events[name] = ve;
+            }
+            return ve;
+        }
+
 
         /// <summary>
         /// Returns EventResult after the event was fired or timedout
@@ -285,7 +298,7 @@ namespace NeuroSpeech.Workflows
         /// <param name="maxWait">Can be zero or Positive only</param>
         /// <returns></returns>
         protected async Task<(EventResult Event1, EventResult Event2, EventResult Event3)> 
-            WaitForEvents<T1, T2, T3>(WorkflowEvent eh1, WorkflowEvent eh2, WorkflowEvent eh3, TimeSpan maxWait)
+            WaitForEvents(WorkflowEvent eh1, WorkflowEvent eh2, WorkflowEvent eh3, TimeSpan maxWait)
         {
             if (context == null)
                 throw new InvalidOperationException($"You cannot wait for event in the activity");
@@ -328,6 +341,58 @@ namespace NeuroSpeech.Workflows
                 e3.Reset();
             }
         }
+
+        public async Task<(bool TimedOut,R? Result, string? Name)> EventSwitchAsync<T, R>(
+            TimeSpan maxWait, 
+            T input,
+            params string[] methodNames) {
+            if (context == null)
+                throw new InvalidOperationException($"You cannot wait for event in the activity");
+            if (maxWait.TotalMilliseconds <= 0)
+                throw new ArgumentOutOfRangeException($"maxWait cannot be equal to or less than zero");
+
+            var timer = this.context.CreateTimer(this.context.CurrentUtcDateTime.Add(maxWait), "");
+
+            List<EventQueue> list = new List<EventQueue>(methodNames.Length);
+            List<Task> tasks = new List<Task>(methodNames.Length + 1) { 
+                timer
+            };
+            CancellationTokenSource c = new CancellationTokenSource();
+
+            string? firedEvent = null;
+
+
+            foreach(var m in methodNames)
+            {
+                var e = GetEvent(m);
+                list.Add(e);
+                var (we, ct) = e.Request();
+                ct.Register(() => c.Cancel());
+
+                async Task<string> MarkEvent() {
+                    await we!;
+                    firedEvent = m;
+                    return we.Result;
+                }
+
+                tasks.Add(MarkEvent());
+            }
+
+            await Task.WhenAll(tasks);
+
+            if (timer.IsCompleted)
+            {
+                // timed out...
+                return (true, default, firedEvent);
+            }
+
+            var fx = this.GetType().GetMethod(firedEvent).CreateDelegate(typeof(Func<T,Task<R>>)) as Func<T,Task<R>>;
+            var result = await fx!(input);
+
+            return (false, result, firedEvent);
+
+        }
+
 
         private Dictionary<string, EventQueue> events = new Dictionary<string, EventQueue>();
 
