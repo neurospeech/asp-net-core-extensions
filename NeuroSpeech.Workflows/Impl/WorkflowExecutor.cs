@@ -7,24 +7,6 @@ using System.Threading.Tasks;
 
 namespace NeuroSpeech.Workflows.Impl
 {
-    internal interface IWorkflowExecutor<T>
-    {
-        Task<T> RunAsync(OrchestrationContext context, object input);
-    }
-
-    public abstract class BaseWorkflow<TInput, TOutput> {
-
-        public OrchestrationContext? context;
-
-        internal IServiceProvider? serviceProvider;
-
-        internal abstract void SetupEvents();
-
-        public abstract Task<TOutput> RunTask(TInput input);
-
-        internal abstract void OnEvent(string name, string input);
-
-    }
 
 
 
@@ -38,8 +20,6 @@ namespace NeuroSpeech.Workflows.Impl
         {
             this.sp = sp;
             this.workflow = sp.Build<T>();
-            // setup events..
-            this.workflow.SetupEvents();
         }
         public override async Task<TOutput> RunTask(OrchestrationContext context, TInput input)
         {
@@ -52,6 +32,8 @@ namespace NeuroSpeech.Workflows.Impl
             var ct = context.GetCancellationTokenSource().Token;
             workflow.context = context;
             workflow.serviceProvider = sp;
+            workflow.WorkflowID = context.OrchestrationInstance.InstanceId;
+
             var completed = new CancellationTokenSource();
 
             await Task.WhenAny( Task.Delay(TimeSpan.FromMilliseconds(-1), completed.Token), RunInternalAsync(input) );
@@ -76,6 +58,7 @@ namespace NeuroSpeech.Workflows.Impl
 
             workflow.context = context;
             workflow.serviceProvider = sp;
+            workflow.WorkflowID = context.OrchestrationInstance.InstanceId;
             workflow.OnEvent(name, input);
         }
 

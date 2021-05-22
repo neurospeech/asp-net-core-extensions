@@ -50,18 +50,6 @@ namespace NeuroSpeech.Workflows.Impl
 
             dt.DefineDefaultConstructor(MethodAttributes.Public);
 
-            foreach(var field in type.GetFields())
-            {
-                var a = field.GetCustomAttribute<EventAttribute>();
-                if (a == null)
-                    continue;
-                if (!field.IsStatic)
-                    throw new InvalidOperationException($"Event must be a static field");
-                WorkflowEvent wh = new WorkflowEvent(a.Name ?? field.Name);
-                field.SetValue(null, wh);
-            }
-
-
             foreach(var method in type.GetMethods())
             {
                 var a = method.GetCustomAttribute<ActivityAttribute>();
@@ -85,46 +73,6 @@ namespace NeuroSpeech.Workflows.Impl
             types[type.FullName] = (wrapper, null, null);
 
             return (Build, type.FullName, activities.ToArray());
-        }
-
-        private void CreateEvent(TypeBuilder type, MethodInfo method, EventAttribute e)
-        {
-            //var pa = method.GetParameters().Select(p => p.ParameterType).ToArray();
-
-            //var om = type.DefineMethod(method.Name,
-            //    MethodAttributes.Public
-            //    | MethodAttributes.HideBySig
-            //    | MethodAttributes.Virtual,
-            //    method.CallingConvention,
-            //    method.ReturnType,
-            //    pa);
-
-            //// event type should be Task<EventResult<TR>>
-            //var returnTypeParameter = method.ReturnType
-            //    .GetArgument(typeof(Task<>))
-            //    .GetArgument(typeof(EventResult<>));
-
-            //type.DefineMethodOverride(om, method);
-
-            //var methodName = pa.Length == 0 ? "WaitForEventAsync" : "WaitForEventDelayAsync";
-
-            //var callTask = type
-            //    .BaseType
-            //    .BaseType
-            //    .GetMethods(BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.FlattenHierarchy)
-            //        .First(m => m.Name == methodName)
-            //    .MakeGenericMethod(returnTypeParameter);
-
-            //var il = om.GetILGenerator();
-            //il.Emit(OpCodes.Ldarg_0);
-            //il.Emit(OpCodes.Ldstr, e.Name ?? method.Name);
-            //if(pa.Length >0)
-            //{
-            //    il.Emit(OpCodes.Ldarg_1);
-            //}
-            //il.Emit(OpCodes.Callvirt, callTask);
-            //il.Emit(OpCodes.Ret);
-
         }
 
         private (Type type, Type[] argList) CreateMethod(TypeBuilder type, MethodInfo method)
@@ -187,7 +135,6 @@ namespace NeuroSpeech.Workflows.Impl
 
 
             var il = om.GetILGenerator();
-            var fld = typeof(BaseWorkflow<,>).GetField("context");
             var callTask = type
                 .BaseType
                 .BaseType

@@ -14,9 +14,14 @@ namespace NeuroSpeech.Workflows.Impl
         void Set(IServiceProvider sp, MethodInfo method, Type[] argList);
     }
 
-    public delegate Task<TOutput> ActivityFunction<TInput, TOutput>(IServiceProvider serviceProvider, TaskContext context, TInput input);
+    public delegate Task<TOutput> ActivityFunction<TInput, TOutput>(
+        IServiceProvider serviceProvider, 
+        TaskContext context, 
+        TInput input,
+        string id);
 
     public class WorkflowActivity<T, TInput, TOutput>: TaskActivity<TInput, TOutput>, IWorkflowActivityInit
+        where T: new()
     {
         private IServiceProvider sp;
         private MethodInfo method;
@@ -89,10 +94,23 @@ namespace NeuroSpeech.Workflows.Impl
                 arguments.Add(Expression.Call(null, getRequiredService.MakeGenericMethod(p.ParameterType), sp));
             }
 
-            var call = Expression.Call(Expression.New(typeof(T)), method, arguments);
+            var wa = Expression.Parameter(typeof(T));
+
+            var call = 
+                Expression.Call(wa, method, arguments);
+
+            var wid = Expression.Parameter(typeof(string));
+
+            var body = Expression.Block(
+                new ParameterExpression[] { wa },
+                Expression.Assign(Expression.Property(wa, "WorkflowID"),wid),
+                call
+                );
 
             var fxc = Expression
-                .Lambda<ActivityFunction<TInput, TOutput>>(call, sp, tc, input)
+                .Lambda<ActivityFunction<TInput, TOutput>>(
+                body
+                , sp, tc, input, wid)
                 .Compile();
             functions[key] = fxc;
             return fxc;
@@ -105,42 +123,9 @@ namespace NeuroSpeech.Workflows.Impl
                 using (var scope = sp.CreateScope())
                 {
                     var fxc = Function(method, argList);
-
-                    return await fxc(scope.ServiceProvider, context, input);
-
-                    //var proxy = Activator.CreateInstance<T>();
-                    //var pa = method.GetParameters();
-                    //var args = new object[pa.Length];
-                    //int i;
-                    //int specifiedParameterCount = argList.Length;
-                    //for (i = 0; i < specifiedParameterCount; i++)
-                    //{
-                    //    if (specifiedParameterCount == 1)
-                    //    {
-                    //        args[i] = input;
-                    //        continue;
-                    //    }
-                    //    //input is tuple...
-                    //    args[i] = input.GetType().GetProperty($"Item{i + 1}").GetValue(input);
-                    //}
-                    //for (; i < pa.Length; i++)
-                    //{
-                    //    var p = pa[i];
-                    //    if (typeof(IServiceProvider).IsAssignableFrom(p.ParameterType))
-                    //    {
-                    //        args[i] = scope.ServiceProvider;
-                    //        continue;
-                    //    }
-                    //    if (typeof(TaskContext).IsAssignableFrom(p.ParameterType))
-                    //    {
-                    //        args[i] = context;
-                    //        continue;
-                    //    }
-                    //    args[i] = scope.ServiceProvider.GetRequiredService(p.ParameterType);
-                    //}
-
-                    //var task = (Task<TOutput>)method.Invoke(proxy, args);
-                    // return await task;
+                    var w = new T();
+                    ((IBaseWorkflow)w).WorkflowID = context.OrchestrationInstance.InstanceId;
+                    return await fxc(scope.ServiceProvider, context, input, context.OrchestrationInstance.InstanceId);
                 }
             } catch (Exception ex)
             {
