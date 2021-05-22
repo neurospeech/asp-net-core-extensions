@@ -3,6 +3,7 @@ using NeuroSpeech.Workflows.Impl;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -157,12 +158,15 @@ namespace NeuroSpeech.Workflows
 
         private EventQueue GetEvent(string name)
         {
-            if(!this.events.TryGetValue(name, out var ve))
+            lock (this)
             {
-                ve = new EventQueue();
-                this.events[name] = ve;
+                if (!this.events.TryGetValue(name, out var ve))
+                {
+                    ve = new EventQueue();
+                    this.events[name] = ve;
+                }
+                return ve;
             }
-            return ve;
         }
 
         public async Task<(string? Name, string? Result)> WaitForEventsAsync(
@@ -172,46 +176,49 @@ namespace NeuroSpeech.Workflows
                 throw new InvalidOperationException($"You cannot wait for event in the activity");
             if (maxWait.TotalMilliseconds <= 0)
                 throw new ArgumentOutOfRangeException($"maxWait cannot be equal to or less than zero");
-
-            CancellationTokenSource c = new CancellationTokenSource();
-            var timer = this.context.CreateTimer(this.context.CurrentUtcDateTime.Add(maxWait), "", c.Token);
-
             List<EventQueue> list = new List<EventQueue>(eventNames.Length);
-            List<Task> tasks = new List<Task>(eventNames.Length + 1) { 
-                timer
-            };
-
-            string? firedEvent = null;
-            string? result = null;
-
-
-            foreach(var m in eventNames)
+            try
             {
-                var e = GetEvent(m);
-                list.Add(e);
-                var (we, ct) = e.Request();
-                ct.Register(() => c.Cancel());
 
-                async Task MarkEvent() {
-                    await we!;
-                    firedEvent = m;
-                    result = we.Result;
+                CancellationTokenSource c = new CancellationTokenSource();
+                List<Task> tasks = new List<Task>(eventNames.Length + 1) {};
+                foreach (var m in eventNames)
+                {
+                    var e = GetEvent(m);
+                    list.Add(e);
+                    var (we, ct) = e.Request();
+                    ct.Register(() => c.Cancel());
+                    tasks.Add(we);
                 }
 
-                tasks.Add(MarkEvent());
-            }
+                var timer = this.context.CreateTimer(this.context.CurrentUtcDateTime.Add(maxWait), "", c.Token);
 
-            await Task.WhenAll(tasks);
+                tasks.Add(timer);
 
-            if (timer.IsCompleted)
+                string? firedEvent = null;
+                string? result = null;
+
+
+                await Task.WhenAny(tasks);
+
+                if (timer.IsCompleted)
+                {
+                    // timed out...
+                    return (null, null);
+                }
+
+                c.Cancel();
+
+                result = tasks.OfType<Task<string>>()
+                    .First(x => x.IsCompleted)
+                    .Result;
+
+                return (firedEvent, result);
+            } finally
             {
-                // timed out...
-                return (null, null);
+                foreach (var e in list)
+                    e.Reset();
             }
-
-            c.Cancel();
-
-            return (firedEvent, result);
 
         }
 

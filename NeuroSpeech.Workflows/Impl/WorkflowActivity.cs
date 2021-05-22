@@ -9,12 +9,22 @@ using System.Threading.Tasks;
 
 namespace NeuroSpeech.Workflows.Impl
 {
+    public static class TaskConverter
+    {
+        public static async Task<T> ToTask<T>(Task task)
+        {
+            await task;
+            return default(T);
+        }
+    }
+
     internal interface IWorkflowActivityInit
     {
         void Set(IServiceProvider sp, MethodInfo method, Type[] argList);
     }
 
-    public delegate Task<TOutput> ActivityFunction<TInput, TOutput>(
+    public delegate Task<TOutput> ActivityFunction<T,TInput, TOutput>(
+        T workflow,
         IServiceProvider serviceProvider, 
         TaskContext context, 
         TInput input,
@@ -27,8 +37,8 @@ namespace NeuroSpeech.Workflows.Impl
         private MethodInfo method;
         private Type[] argList;
 
-        private static Dictionary<string, ActivityFunction<TInput, TOutput>> functions 
-            = new Dictionary<string, ActivityFunction<TInput, TOutput>>();
+        private static Dictionary<string, ActivityFunction<T,TInput, TOutput>> functions 
+            = new Dictionary<string, ActivityFunction<T,TInput, TOutput>>();
 
         private static MethodInfo getRequiredService = typeof(ServiceProviderServiceExtensions)
                     .GetMethods()
@@ -43,11 +53,14 @@ namespace NeuroSpeech.Workflows.Impl
                 new Type[] { typeof(TaskContext) }, null);
 
 
-        private static ActivityFunction<TInput, TOutput> Function(MethodInfo method , Type[] argList)
+        private static ActivityFunction<T,TInput, TOutput> Function(MethodInfo method , Type[] argList)
         {
             var key = method.DeclaringType.FullName + "_" + method.Name;
             if (functions.TryGetValue(key, out var fx))
                 return fx;
+
+            var wa = Expression.Parameter(typeof(T));
+
             var sp = Expression.Parameter(typeof(IServiceProvider));
             var tc = Expression.Parameter(typeof(TaskContext));
             var input = Expression.Parameter(typeof(TInput));
@@ -94,23 +107,24 @@ namespace NeuroSpeech.Workflows.Impl
                 arguments.Add(Expression.Call(null, getRequiredService.MakeGenericMethod(p.ParameterType), sp));
             }
 
-            var wa = Expression.Parameter(typeof(T));
 
             var call = 
                 Expression.Call(wa, method, arguments);
 
+            if(method.ReturnType == typeof(Task))
+            {
+                var converter = typeof(TaskConverter)
+                    .GetMethod(nameof(TaskConverter.ToTask))
+                    .MakeGenericMethod(typeof(TOutput));
+                call = Expression.Call(null, converter, call);
+            }
+
             var wid = Expression.Parameter(typeof(string));
 
-            var body = Expression.Block(
-                new ParameterExpression[] { wa },
-                Expression.Assign(Expression.Property(wa, "WorkflowID"),wid),
-                call
-                );
-
             var fxc = Expression
-                .Lambda<ActivityFunction<TInput, TOutput>>(
-                body
-                , sp, tc, input, wid)
+                .Lambda<ActivityFunction<T,TInput,TOutput>>(
+                call
+                , wa, sp, tc, input, wid)
                 .Compile();
             functions[key] = fxc;
             return fxc;
@@ -125,7 +139,7 @@ namespace NeuroSpeech.Workflows.Impl
                     var fxc = Function(method, argList);
                     var w = new T();
                     ((IBaseWorkflow)w).WorkflowID = context.OrchestrationInstance.InstanceId;
-                    return await fxc(scope.ServiceProvider, context, input, context.OrchestrationInstance.InstanceId);
+                    return await fxc(w, scope.ServiceProvider, context, input, context.OrchestrationInstance.InstanceId);
                 }
             } catch (Exception ex)
             {

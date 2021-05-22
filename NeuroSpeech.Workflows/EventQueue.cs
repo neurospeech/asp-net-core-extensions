@@ -25,14 +25,14 @@ namespace NeuroSpeech.Workflows
 
         public void SetEvent(string result)
         {
-            if(taskSoruce == null)
+            if (taskSoruce == null)
             {
                 pending ??= new Queue<string>();
                 pending.Enqueue(result);
                 return;
             }
-            cancelSource?.Cancel();
             this.taskSoruce.TrySetResult(result);
+            cancelSource?.Cancel();
         }
 
         public (Task<string> waiter, CancellationToken token) Request()
