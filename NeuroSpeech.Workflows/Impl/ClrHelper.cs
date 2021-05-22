@@ -105,7 +105,9 @@ namespace NeuroSpeech.Workflows.Impl
 
             string methodName = "CallTaskAsync";
 
-            var rt = method.ReturnType.GetGenericArguments()[0];
+            var rt = method.ReturnType.IsConstructedGenericType 
+                ? method.ReturnType.GetGenericArguments()[0]
+                : typeof(string);
             Type[] relayParams = null;
 
 
