@@ -96,7 +96,10 @@ namespace NeuroSpeech.Workflows.Impl
                 input = argList.ToTuple();
             }
 
-            Type activityType = CreateProxyClass(type, method, input);
+            var rt = method.ReturnType.IsConstructedGenericType
+                ? method.ReturnType.GetGenericArguments()[0]
+                : typeof(string);
+            Type activityType = CreateProxyClass(type, method, input, rt);
             
 
             var pa = method.GetParameters().Select(p => p.ParameterType).ToArray();
@@ -105,9 +108,6 @@ namespace NeuroSpeech.Workflows.Impl
 
             string methodName = "CallTaskAsync";
 
-            var rt = method.ReturnType.IsConstructedGenericType 
-                ? method.ReturnType.GetGenericArguments()[0]
-                : typeof(string);
             Type[] relayParams = null;
 
 
@@ -182,10 +182,10 @@ namespace NeuroSpeech.Workflows.Impl
 
         }
 
-        private Type CreateProxyClass(TypeBuilder type, MethodInfo method, Type input)
+        private Type CreateProxyClass(TypeBuilder type, MethodInfo method, Type input, Type rt)
         {
             var moduleBuilder = type.Module as ModuleBuilder;
-            var rt = method.ReturnType.GetGenericArguments()[0];
+            // var rt = method.ReturnType.GetGenericArguments()[0];
 
             // var pa = method.GetParameters();
 
