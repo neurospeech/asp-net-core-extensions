@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography;
@@ -33,6 +34,10 @@ namespace NeuroSpeech.Eternity
 
         }
 
+        internal Task<string> CreateAsync<TInput>(Type type, MethodInfo runAsync, TInput input)
+        {
+            throw new NotImplementedException();
+        }
 
         public async Task ProcessMessagesAsync(CancellationToken cancellationToken)
         {
@@ -45,6 +50,11 @@ namespace NeuroSpeech.Eternity
 
         internal Task<string> WaitForExternalEventsAsync(string[] names, TimeSpan delay, CancellationToken cancellationToken)
         {
+
+            // create cancellation method... and decide which one will win...
+
+
+
             throw new NotImplementedException();
         }
 
@@ -59,6 +69,48 @@ namespace NeuroSpeech.Eternity
             return JsonSerializer.Deserialize<TActivityOutput>(result);
         }
 
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public async Task ScheduleAsync<T>(
+            string ID,
+            DateTimeOffset after,
+            MethodInfo method,
+            params object[] input)
+        {
+            var key = ActivityStep.Create(ID, typeof(T), method, input, after, options);
+
+            while (true)
+            {
+
+                // has result...
+                var task = await GetActivityResultAsync(key);
+
+                switch (task.Status)
+                {
+                    case ActivityStatus.Failed:
+                        throw new ActivityFailedException(task.Error);
+                    case ActivityStatus.Completed:
+                        return;
+                    case ActivityStatus.None:
+                        // lets schedule...
+                        await storage.ScheduleActivityAsync(key);
+                        if ((after - DateTimeOffset.UtcNow).TotalMinutes > 1)
+                        {
+                            throw new ActivitySuspendedException();
+                        }
+                        break;
+                    case ActivityStatus.Running:
+                        if ((task.ETA - DateTimeOffset.UtcNow).TotalMinutes > 1)
+                            throw new ActivitySuspendedException();
+                        break;
+                }
+
+                await RunActivityAsync(task);
+            }
+
+
+        }
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public async Task<TActivityOutput> ScheduleAsync<T, TActivityOutput>(
             string ID, 
             DateTimeOffset after, 

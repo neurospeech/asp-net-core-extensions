@@ -20,6 +20,10 @@ namespace NeuroSpeech.Eternity
 
         public long SequenceID { get;set; }
 
+        public DateTimeOffset DateCreated { get; set; }
+
+        public DateTimeOffset LastUpdated { get; set; }
+
         public DateTimeOffset ETA { get; set; }
 
         public string ParametersHash { get; set; }
@@ -31,6 +35,10 @@ namespace NeuroSpeech.Eternity
         public string Error { get; set; }
 
         public string Result { get; set; }
+
+        public string ExtraData { get; set; }
+
+        public string QueueToken { get; set; }
 
         private static SHA256 sha = SHA256.Create();
 

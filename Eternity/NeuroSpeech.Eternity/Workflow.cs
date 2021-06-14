@@ -18,6 +18,16 @@ namespace NeuroSpeech.Eternity
         where TWorkflow: Workflow<TWorkflow,TInput,TOutput>
     {
 
+        private static MethodInfo runAsync;
+
+
+        public static Task<string>  CreateAsync(EternityContext context, TInput input)
+        {
+
+            runAsync ??= typeof(TWorkflow).GetMethod(nameof(RunAsync));
+            return context.CreateAsync(ClrHelper.Instance.GetDerived(typeof(TWorkflow)), runAsync, input);
+        }
+
 
         public string ID { get; private set; }
 
