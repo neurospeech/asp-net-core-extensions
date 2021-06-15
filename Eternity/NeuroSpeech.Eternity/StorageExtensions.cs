@@ -7,7 +7,10 @@ namespace NeuroSpeech.Eternity
         public static async Task<ActivityStep> ScheduleActivityAsync(this IEternityStorage storage, ActivityStep step)
         {
             var eta = step.ETA;
-            step = await storage.InsertActivityAsync(step);
+            if (step.SequenceID == 0)
+            {
+                step = await storage.InsertActivityAsync(step);
+            }
             var original = step;
             if (step.ActivityType != ActivityType.Workflow)
             {

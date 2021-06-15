@@ -1,54 +1,87 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace NeuroSpeech.Eternity.Tests.Mocks
 {
+
+    public class MockLock: IEternityLock {
+        public readonly string id;
+
+        public MockLock(string id)
+        {
+            this.id = id;
+        }
+    
+    }
+
     public class MockStorage : IEternityStorage
     {
-        private Dictionary<string, ActivityStep> storage = new Dictionary<string, ActivityStep>();
+        private readonly IEternityClock clock;
+        private MockDatabase db = new MockDatabase();
+        private ConcurrentDictionary<string, IEternityLock> locks = new ConcurrentDictionary<string, IEternityLock>();
 
-        private Queue<ActivityStep> queue = new Queue<ActivityStep>();
-
-        public Task<IEternityLock> AcquireLockAsync(long sequenceId)
+        public MockStorage(IEternityClock clock)
         {
-            throw new NotImplementedException();
+            this.clock = clock;
+        }
+
+        public async Task<IEternityLock> AcquireLockAsync(long sequenceId)
+        {
+            var key = sequenceId.ToString();
+            var newLock = new MockLock(key);
+            while(true)
+            {
+                if(locks.TryAdd(key, newLock))
+                {
+                    return newLock;
+                }
+                await Task.Delay(100);
+                continue;
+            }
         }
 
         public Task FreeLockAsync(IEternityLock executionLock)
         {
-            throw new NotImplementedException();
+            locks.TryRemove((executionLock as MockLock).id, out var n);
+            return Task.CompletedTask;
+        }
+
+        public Task<ActivityStep> GetEventAsync(string id, string eventName)
+        {
+            return Task.FromResult(db.GetEventAsync(id, eventName));
         }
 
         public Task<ActivityStep[]> GetScheduledActivitiesAsync()
         {
-            throw new NotImplementedException();
+            return Task.FromResult(db.GetReadyAsync(clock.UtcNow));
         }
 
         public Task<ActivityStep> GetStatusAsync(ActivityStep key)
         {
-            throw new NotImplementedException();
+            return db.SearchAsync(key.ID, key.ActivityType, key.ParametersHash, key.Parameters);
         }
 
         public Task<ActivityStep> GetWorkflowAsync(string id)
         {
-            throw new NotImplementedException();
+            return db.SearchAsync(id, ActivityType.Workflow);
         }
 
         public Task<ActivityStep> InsertActivityAsync(ActivityStep key)
         {
-            throw new NotImplementedException();
+            return db.InsertAsync(key);
         }
 
         public Task QueueWorkflowAsync(ActivityStep step, DateTimeOffset after)
         {
-            throw new NotImplementedException();
+            return Task.CompletedTask;
         }
 
         public Task UpdateAsync(ActivityStep key)
         {
-            throw new NotImplementedException();
+            return db.UpdateAsync(key);
         }
     }
 }

@@ -118,6 +118,33 @@ namespace NeuroSpeech.Eternity
             await Task.Delay(diff);
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="eventName"></param>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public async Task RaiseEventAsync(
+            string id,
+            string eventName,
+            string value,
+            bool throwIfNotFound = false)
+        {
+            value = value ?? "";
+            var key = await storage.GetEventAsync(id, eventName);
+            if (key == null)
+            {
+                if(throwIfNotFound)
+                    throw new NotSupportedException();
+                return;
+            }
+            key.Result = value;
+            key.ETA = clock.UtcNow;
+            await storage.UpdateAsync(key);
+            await storage.ScheduleActivityAsync(key);
+        }
+
         internal async Task<string> WaitForExternalEventsAsync(IWorkflow workflow, Type type, string id, string[] names, DateTimeOffset eta)
         {
             var utcNow = clock.UtcNow;

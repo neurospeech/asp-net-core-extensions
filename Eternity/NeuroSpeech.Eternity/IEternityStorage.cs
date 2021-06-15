@@ -28,6 +28,14 @@ namespace NeuroSpeech.Eternity
         Task<ActivityStep[]> GetScheduledActivitiesAsync();
 
         Task UpdateAsync(ActivityStep key);
+
+        /// <summary>
+        /// Return not completed/not failed waiting event 
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="eventName"></param>
+        /// <returns></returns>
+        Task<ActivityStep> GetEventAsync(string id, string eventName);
     }
 
 }
