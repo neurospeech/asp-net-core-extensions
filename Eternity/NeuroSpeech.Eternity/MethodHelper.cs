@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 
 namespace NeuroSpeech.Eternity
 {
+
     internal static class MethodHelper
     {
 
@@ -44,47 +45,5 @@ namespace NeuroSpeech.Eternity
             return "";
         }
 
-    }
-
-    internal static class ValueTupleHelper
-    {
-
-        public static object GetTupleValue(this object item, Type type, int index)
-        {
-            return type.GetProperty($"Item{index}").GetValue(item);
-        }
-
-        public static object ToValueTuple(this MethodInfo method, object[] parameters)
-        {
-            var pas = method.GetParameters();
-            var arg = new List<object>();
-            var types = new List<Type>();
-            if (pas.Length > 6)
-                throw new NotSupportedException();
-            for (int i = 0; i < pas.Length; i++)
-            {
-                var p = pas[i];
-                types.Add(p.ParameterType);
-                if (p.GetCustomAttribute<InjectAttribute>() != null)
-                {
-                    arg.Add(null);
-                    continue;
-                }
-                if (i < parameters.Length)
-                {
-                    arg.Add(parameters[i]);
-                    continue;
-                }
-                if (p.HasDefaultValue)
-                {
-                    arg.Add(p.RawDefaultValue);
-                    continue;
-                }
-                throw new NotSupportedException();
-            }
-       
-            var factory = typeof(Tuple).GetMethod("Create", types.ToArray());
-            return factory.Invoke(null, arg.ToArray());
-        }
     }
 }

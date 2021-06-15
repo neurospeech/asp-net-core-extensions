@@ -17,13 +17,18 @@ namespace NeuroSpeech.Eternity
     {
         private readonly IEternityStorage storage;
         private readonly IServiceProvider services;
+        private readonly IEternityClock clock;
         private readonly System.Text.Json.JsonSerializerOptions options;
         
 
-        public EternityContext(IEternityStorage storage, IServiceProvider services)
+        public EternityContext(
+            IEternityStorage storage, 
+            IServiceProvider services,
+            IEternityClock clock)
         {
             this.storage = storage;
             this.services = services;
+            this.clock = clock;
             this.options = new JsonSerializerOptions()
             {
                 AllowTrailingCommas = true,
@@ -34,9 +39,13 @@ namespace NeuroSpeech.Eternity
 
         }
 
-        internal Task<string> CreateAsync<TInput>(Type type, MethodInfo runAsync, TInput input)
+        internal async Task<string> CreateAsync<TInput, TOutput>(Type type, TInput input, string id = null)
         {
-            throw new NotImplementedException();
+            id ??= Guid.NewGuid().ToString("N");
+            var utcNow = clock.UtcNow;
+            var key = ActivityStep.Workflow(id, type, typeof(TOutput), input, utcNow, utcNow, options);
+            await storage.ScheduleActivityAsync(key);
+            return id;
         }
 
         public async Task ProcessMessagesAsync(CancellationToken cancellationToken)
@@ -44,18 +53,106 @@ namespace NeuroSpeech.Eternity
             while(!cancellationToken.IsCancellationRequested)
             {
                 var items = await storage.GetScheduledActivitiesAsync();
-                await Task.WhenAll(items.Select(RunActivityAsync));
+                await Task.WhenAll(items.Select(RunWorkflowAsync));
             }
         }
 
-        internal Task<string> WaitForExternalEventsAsync(string[] names, TimeSpan delay, CancellationToken cancellationToken)
+        private async Task RunWorkflowAsync(ActivityStep step)
         {
+            if (step.ActivityType != ActivityType.Workflow)
+                throw new InvalidOperationException();
 
-            // create cancellation method... and decide which one will win...
+            var workflowType = Type.GetType(step.WorkflowType);
+            // we need to begin...
+            var instance = GetWorkflowInstance(workflowType, step.ID, step.LastUpdated);
+            var input = JsonSerializer.Deserialize(step.Parameters, instance.InputType, options);
+            try
+            {
+                var result = await instance.RunAsync(input);
+                step.Result = JsonSerializer.Serialize(result, options);
+                step.LastUpdated = clock.UtcNow;
+                step.Status = ActivityStatus.Completed;
+            }
+            catch (ActivitySuspendedException)
+            {
+                step.Status = ActivityStatus.Suspended;
+                step.LastUpdated = clock.UtcNow;
+            } catch(Exception ex)
+            {
+                step.Error = ex.ToString();
+                step.Status = ActivityStatus.Failed;
+                step.LastUpdated = clock.UtcNow;
+            }
+            await storage.UpdateAsync(step);
+        }
 
+        internal async Task Delay(IWorkflow workflow, Type type, string id, DateTimeOffset timeout)
+        {
+            var utcNow = clock.UtcNow;
+            var key = ActivityStep.Delay(id, type, timeout, utcNow);
+            var status = await GetActivityResultAsync(key);
 
+            switch (status.Status)
+            {
+                case ActivityStatus.Completed:
+                    workflow.SetCurrentTime(status.LastUpdated);
+                    return;
+                case ActivityStatus.Failed:
+                    workflow.SetCurrentTime(status.LastUpdated);
+                    throw new ActivityFailedException(status.Error);
+                case ActivityStatus.None:
+                    status = await storage.ScheduleActivityAsync(key);
+                    break;
+            }
 
-            throw new NotImplementedException();
+            if(status.ETA <= utcNow)
+            {
+                // this was in the past...
+                return;
+            }
+
+            var diff = status.ETA - utcNow;
+            if (diff.TotalSeconds > 15)
+                throw new ActivitySuspendedException();
+
+            await Task.Delay(diff);
+        }
+
+        internal async Task<string> WaitForExternalEventsAsync(IWorkflow workflow, Type type, string id, string[] names, DateTimeOffset eta)
+        {
+            var utcNow = clock.UtcNow;
+            var key = ActivityStep.Event(id, type, names, eta, utcNow);
+
+            while (true)
+            {
+
+                var status = await GetActivityResultAsync(key);
+
+                switch (status.Status)
+                {
+                    case ActivityStatus.Completed:
+                        workflow.SetCurrentTime(status.LastUpdated);
+                        return status.AsResult<string>(options);
+                    case ActivityStatus.Failed:
+                        workflow.SetCurrentTime(status.LastUpdated);
+                        throw new ActivityFailedException(status.Error);
+                    case ActivityStatus.None:
+                        status = await storage.ScheduleActivityAsync(status);
+                        break;
+                }
+
+                if (status.ETA <= utcNow)
+                {
+                    // this was in the past...
+                    return status.Result;
+                }
+
+                var diff = status.ETA - utcNow;
+                if (diff.TotalSeconds > 15)
+                    throw new ActivitySuspendedException();
+
+                await Task.Delay(diff);
+            }
         }
 
         internal async Task<ActivityStep> GetActivityResultAsync(ActivityStep key)
@@ -70,13 +167,14 @@ namespace NeuroSpeech.Eternity
         }
 
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public async Task ScheduleAsync<T>(
+        internal async Task ScheduleAsync<T>(IWorkflow workflow,
             string ID,
             DateTimeOffset after,
             MethodInfo method,
             params object[] input)
         {
-            var key = ActivityStep.Create(ID, typeof(T), method, input, after, options);
+            var utcNow = clock.UtcNow;
+            var key = ActivityStep.Activity(ID, typeof(T), method, input, after, utcNow, options);
 
             while (true)
             {
@@ -87,19 +185,22 @@ namespace NeuroSpeech.Eternity
                 switch (task.Status)
                 {
                     case ActivityStatus.Failed:
+                        workflow.SetCurrentTime(task.LastUpdated);
                         throw new ActivityFailedException(task.Error);
                     case ActivityStatus.Completed:
+                        workflow.SetCurrentTime(task.LastUpdated);
                         return;
                     case ActivityStatus.None:
                         // lets schedule...
                         await storage.ScheduleActivityAsync(key);
-                        if ((after - DateTimeOffset.UtcNow).TotalMinutes > 1)
+                        if ((after - clock.UtcNow).TotalMinutes > 1)
                         {
                             throw new ActivitySuspendedException();
                         }
                         break;
+                    case ActivityStatus.Suspended:
                     case ActivityStatus.Running:
-                        if ((task.ETA - DateTimeOffset.UtcNow).TotalMinutes > 1)
+                        if ((task.ETA - clock.UtcNow).TotalMinutes > 1)
                             throw new ActivitySuspendedException();
                         break;
                 }
@@ -111,13 +212,28 @@ namespace NeuroSpeech.Eternity
         }
 
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public async Task<TActivityOutput> ScheduleAsync<T, TActivityOutput>(
+        internal Task<TActivityOutput> ScheduleAsync<T, TActivityOutput>(IWorkflow workflow,
+            string ID,
+            DateTimeOffset after,
+            MethodInfo method,
+            params object[] input)
+        {
+            return ScheduleAsync<TActivityOutput>(workflow, typeof(T), ID, after, method, input);
+        }
+
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        internal async Task<TActivityOutput> ScheduleAsync<TActivityOutput>(
+            IWorkflow workflow,
+            Type type,
             string ID, 
             DateTimeOffset after, 
             MethodInfo method, 
             params object[] input)
         {
-            var key = ActivityStep.Create(ID, typeof(T), method, input, after, options);
+            var utcNow = clock.UtcNow;
+
+            var key = ActivityStep.Activity(ID, type, method, input, after, utcNow, options);
 
             while (true)
             {
@@ -128,19 +244,22 @@ namespace NeuroSpeech.Eternity
                 switch (task.Status)
                 {
                     case ActivityStatus.Failed:
+                        workflow.SetCurrentTime(task.LastUpdated);
                         throw new ActivityFailedException(task.Error);
                     case ActivityStatus.Completed:
+                        workflow.SetCurrentTime(task.LastUpdated);
                         return task.AsResult<TActivityOutput>(options);
                     case ActivityStatus.None:
                         // lets schedule...
                         await storage.ScheduleActivityAsync(key);
-                        if ((after - DateTimeOffset.UtcNow).TotalMinutes > 1)
+                        if ((after - clock.UtcNow).TotalMinutes > 1)
                         {
                             throw new ActivitySuspendedException();
                         }
                         break;
+                    case ActivityStatus.Suspended:
                     case ActivityStatus.Running:
-                        if ((task.ETA - DateTimeOffset.UtcNow).TotalMinutes > 1)
+                        if ((task.ETA - clock.UtcNow).TotalMinutes > 1)
                             throw new ActivitySuspendedException();
                         break;
                 }
@@ -153,15 +272,12 @@ namespace NeuroSpeech.Eternity
 
         internal async Task RunActivityAsync(ActivityStep key)
         {
-            using var scope = services.CreateScope();
 
             var task = await GetActivityResultAsync(key);
 
             var sequenceId = task.SequenceID;
 
             var type = Type.GetType(key.WorkflowType);
-
-            var method = type.GetMethod(key.Method);
 
             var instance = GetWorkflowInstance(type, key.ID, key.ETA);
 
@@ -176,16 +292,19 @@ namespace NeuroSpeech.Eternity
                 switch (task.Status)
                 {
                     case ActivityStatus.Completed:
-                        return;
                     case ActivityStatus.Failed:
-                        throw new ActivityFailedException(task.Error);
+                        return;
                 }
+
+                using var scope = services.CreateScope();
 
                 try
                 {
-                    var parameters = BuildParameters(method, key.InputType, key.Parameters, scope.ServiceProvider);
+                    var method = type.GetMethod(key.Method);
 
-                    var result = await method.RunAsync(instance, parameters.ToArray(), options);
+                    var parameters = BuildParameters(method, key.Parameters, scope.ServiceProvider);
+
+                    var result = await method.RunAsync(instance, parameters, options);
                     key.Result = result;
                     await storage.UpdateAsync(key);
                     return;
@@ -206,21 +325,21 @@ namespace NeuroSpeech.Eternity
             }
         }
 
-        private List<object> BuildParameters(MethodInfo method, string inputType, string parameters, IServiceProvider serviceProvider)
+        private object[] BuildParameters(MethodInfo method, string parameters, IServiceProvider serviceProvider)
         {
-            var result = new List<object>();
             var pas = method.GetParameters();
-            var input = Type.GetType(inputType);
-            var tuple = JsonSerializer.Deserialize(parameters, input, options);
+            var result = new object[pas.Length];
+            var tuple = JsonSerializer.Deserialize<string[]>(parameters, options);
             for (int i = 0; i < pas.Length; i++)
             {
                 var pa = pas[i];
                 if(pa.GetCustomAttribute<InjectAttribute>() == null)
                 {
-                    result.Add(tuple.GetTupleValue(input, i+1));
+                    var value = tuple[i];
+                    result[i] = JsonSerializer.Deserialize(value, pa.ParameterType, options);
                     continue;
                 }
-                result.Add( serviceProvider.GetRequiredService(pa.ParameterType) );
+                result[i] = serviceProvider.GetRequiredService(pa.ParameterType);
             }
             return result;
         }
@@ -232,7 +351,7 @@ namespace NeuroSpeech.Eternity
             return w;
         }
 
-        internal Task<long> AcquireLockAsync(long sequenceId)
+        internal Task<IEternityLock> AcquireLockAsync(long sequenceId)
         {
             return storage.AcquireLockAsync(sequenceId);
         }
@@ -242,7 +361,7 @@ namespace NeuroSpeech.Eternity
             return JsonSerializer.Serialize<TActivityOutput>(result);
         }
 
-        internal Task FreeLockAsync(long executionLock)
+        internal Task FreeLockAsync(IEternityLock executionLock)
         {
             return storage.FreeLockAsync(executionLock);
         }

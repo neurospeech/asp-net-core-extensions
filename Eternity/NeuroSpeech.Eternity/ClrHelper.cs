@@ -9,11 +9,6 @@ using System.Threading;
 
 namespace NeuroSpeech.Eternity
 {
-    [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
-    public class ActivityAttribute: Attribute
-    {
-
-    }
 
     public class ClrHelper
     {
@@ -86,7 +81,39 @@ namespace NeuroSpeech.Eternity
 
             var il = om.GetILGenerator();
 
-            typeof(EternityContext).GetMethods().FirstOrDefault(x => x.Name == "ScheduleAsync");
+            MethodInfo targetMethod;
+
+            if(hasReturnValue)
+            {
+                var resultType = method.ReturnType.GenericTypeArguments[0];
+                targetMethod = method.DeclaringType.GetMethod("ScheduleResultAsync");
+            } else
+            {
+                targetMethod = method.DeclaringType.GetMethod("ScheduleAsync");
+            }
+
+            il.Emit(OpCodes.Ldarg_0);
+
+            var pas = method.GetParameters();
+            il.EmitConstant(pas.Length);
+            il.Emit(OpCodes.Newarr, typeof(object));
+            for (int i = 0; i < pas.Length; i++)
+            {
+                il.Emit(OpCodes.Dup);
+                il.EmitConstant(i);
+                il.EmitLoadArg(i);
+                var pat = pa[i];
+                if(pat.IsValueType)
+                {
+                    // need to box..
+                    il.Emit(OpCodes.Box, pat);
+                }
+                il.Emit(OpCodes.Stelem_Ref);
+            }
+
+            il.Emit(OpCodes.Callvirt, targetMethod);
+            il.Emit(OpCodes.Ret);
+            return;
         }
     }
 }

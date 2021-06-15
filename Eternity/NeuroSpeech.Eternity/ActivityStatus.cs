@@ -5,6 +5,7 @@
         None,
         Running,
         Completed,
+        Suspended,
         Failed
     }
 }

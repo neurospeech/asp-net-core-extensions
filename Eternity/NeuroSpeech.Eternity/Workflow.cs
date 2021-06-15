@@ -8,41 +8,26 @@ using System.Threading.Tasks;
 
 namespace NeuroSpeech.Eternity
 {
-    internal interface IWorkflow
-    {
-        void Init(string id, EternityContext context, DateTimeOffset start);
-
-    }
 
     public abstract class Workflow<TWorkflow,TInput,TOutput>: IWorkflow
         where TWorkflow: Workflow<TWorkflow,TInput,TOutput>
     {
 
-        private static MethodInfo runAsync;
-
-
-        public static Task<string>  CreateAsync(EternityContext context, TInput input)
+        public static Task<string> CreateAsync(EternityContext context, TInput input)
         {
-
-            runAsync ??= typeof(TWorkflow).GetMethod(nameof(RunAsync));
-            return context.CreateAsync(ClrHelper.Instance.GetDerived(typeof(TWorkflow)), runAsync, input);
+            return context.CreateAsync<TInput, TOutput>(ClrHelper.Instance.GetDerived(typeof(TWorkflow)), input);
         }
 
 
         public string ID { get; private set; }
 
-        private EternityContext Context;
+        public EternityContext Context { get; private set; }
 
         public DateTimeOffset CurrentUtc { get; private set; }
 
+        Type IWorkflow.InputType => typeof(TInput);
 
         public abstract Task<TOutput> RunAsync(TInput input);
-
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public Task<TActivityOutput> ScheduleAsync<TActivityOutput>(TimeSpan after, MethodInfo method, params object[] input)
-        {
-            return Context.ScheduleAsync<TWorkflow,TActivityOutput>(ID, this.CurrentUtc.Add(after), method, input);
-        }
 
         void IWorkflow.Init(string id, EternityContext context, DateTimeOffset start)
         {
@@ -51,10 +36,40 @@ namespace NeuroSpeech.Eternity
             this.CurrentUtc = start;
         }
 
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public virtual Task<string> WaitForExternalEventsAsync(string[] names, TimeSpan delay, CancellationToken cancellationToken)
+        public Task<string> WaitForExternalEventsAsync(string[] names, TimeSpan delay)
         {
-            return Context.WaitForExternalEventsAsync(names, delay, cancellationToken);
+            if(delay.TotalMilliseconds <= 0)
+            {
+                throw new NotSupportedException();
+            }
+            return Context.WaitForExternalEventsAsync(this, typeof(TWorkflow), ID, names, CurrentUtc.Add( delay));
+        }
+
+        public Task Delay(TimeSpan timeout)
+        {
+            return Context.Delay(this, typeof(TWorkflow), ID, CurrentUtc.Add(timeout));
+        }
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public Task<T> ScheduleResultAsync<T>(MethodInfo fx, params object[] items)
+        {
+            return Context.ScheduleAsync<TWorkflow, T>(this, ID, CurrentUtc, fx, items);
+        }
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public Task ScheduleAsync(MethodInfo fx, params object[] items)
+        {
+            return Context.ScheduleAsync<TWorkflow>(this, ID, CurrentUtc, fx, items);
+        }
+
+        void IWorkflow.SetCurrentTime(DateTimeOffset time)
+        {
+            this.CurrentUtc = time;
+        }
+
+        async Task<object> IWorkflow.RunAsync(object input)
+        {
+            var result = await RunAsync((TInput)input);
+            return result;
         }
     }
 }
