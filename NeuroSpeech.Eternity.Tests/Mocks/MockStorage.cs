@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -20,8 +21,12 @@ namespace NeuroSpeech.Eternity.Tests.Mocks
     public class MockStorage : IEternityStorage
     {
         private readonly IEternityClock clock;
-        private MockDatabase db = new MockDatabase();
         private ConcurrentDictionary<string, IEternityLock> locks = new ConcurrentDictionary<string, IEternityLock>();
+
+        private List<ActivityStep> list = new List<ActivityStep>();
+        private List<WorkflowStep> workflows = new List<WorkflowStep>();
+        private List<QueueToken> queue = new List<QueueToken>();
+
 
         public MockStorage(IEternityClock clock)
         {
@@ -51,37 +56,100 @@ namespace NeuroSpeech.Eternity.Tests.Mocks
 
         public Task<ActivityStep> GetEventAsync(string id, string eventName)
         {
-            return Task.FromResult(db.GetEventAsync(id, eventName));
+            var e = list.FirstOrDefault(x => x.ID == id
+                && x.ActivityType == ActivityType.Event
+                && x.Status != ActivityStatus.Completed
+                && x.Status != ActivityStatus.Failed);
+            return Task.FromResult(e);
         }
 
-        public Task<ActivityStep[]> GetScheduledActivitiesAsync()
+        public Task<WorkflowStep[]> GetScheduledActivitiesAsync()
         {
-            return Task.FromResult(db.GetReadyAsync(clock.UtcNow));
+            var ready = queue.Where(x => x.ETA <= clock.UtcNow).ToList();
+            var steps = ready.GroupBy(x => x.ID).Select(x => workflows.FirstOrDefault(w => w.ID == x.Key)).ToArray();
+            foreach (var item in ready)
+            {
+                queue.Remove(item);
+            }
+            return Task.FromResult(steps);
         }
 
         public Task<ActivityStep> GetStatusAsync(ActivityStep key)
         {
-            return db.SearchAsync(key.ID, key.ActivityType, key.KeyHash, key.Key);
+            var item = list.FirstOrDefault(x => x.ID == key.ID
+            && x.ActivityType == key.ActivityType
+            && x.KeyHash == key.KeyHash
+            && x.Key == key.Key);
+            return Task.FromResult(item);
         }
 
-        public Task<ActivityStep> GetWorkflowAsync(string id)
+        public Task<WorkflowStep> GetWorkflowAsync(string id)
         {
-            return db.SearchAsync(id, ActivityType.Workflow);
+            return Task.FromResult(workflows.FirstOrDefault(x =>x.ID == id));
         }
 
         public Task<ActivityStep> InsertActivityAsync(ActivityStep key)
         {
-            return db.InsertAsync(key);
+            list.Add(key);
+            key.SequenceID = list.Count;
+            return Task.FromResult(key);
         }
 
-        public Task QueueWorkflowAsync(ActivityStep step, DateTimeOffset after)
+        public Task<WorkflowStep> InsertAsync(WorkflowStep step)
         {
+            if(string.IsNullOrEmpty(step.ID))
+            {
+                step.ID = Guid.NewGuid().ToString("N");
+            } else
+            {
+                if (workflows.Any(x => x.ID == step.ID))
+                    throw new InvalidOperationException();
+            }
+            workflows.Add(step);
+            return Task.FromResult(step);
+        }
+
+        public Task<IQueueToken> QueueWorkflowAsync(string id, DateTimeOffset after)
+        {
+            var qt = new QueueToken(id, after);
+            queue.Add(qt);
+            return Task.FromResult<IQueueToken>(qt);
+        }
+
+        public Task RemoveQueueAsync(IQueueToken token)
+        {
+            if(token != null)
+            {
+                var t = token as QueueToken;
+                queue.Remove(t);
+            }
             return Task.CompletedTask;
         }
 
         public Task UpdateAsync(ActivityStep key)
         {
-            return db.UpdateAsync(key);
+            list[(int)key.SequenceID - 1] = key;
+            return Task.CompletedTask;
+        }
+
+        public Task UpdateAsync(WorkflowStep key)
+        {
+            int index = workflows.FindIndex(x => x.ID == key.ID);
+            workflows[index] = key;
+            return Task.CompletedTask;
+        }
+    }
+
+    public class QueueToken: IQueueToken
+    {
+        public readonly string ID;
+
+        public readonly DateTimeOffset ETA;
+
+        public QueueToken(string id, DateTimeOffset eta)
+        {
+            this.ID = id;
+            this.ETA = eta;
         }
     }
 }

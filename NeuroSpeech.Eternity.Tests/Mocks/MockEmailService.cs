@@ -7,7 +7,8 @@ namespace NeuroSpeech.Eternity.Tests.Mocks
     public class MockEmailService
     {
 
-        public List<(string emailAddress, string code)> Emails = new List<(string emailAddress, string code)>();
+        public List<(string emailAddress, string code, DateTimeOffset extra)> Emails 
+            = new List<(string emailAddress, string code, DateTimeOffset extra)>();
 
     }
 }

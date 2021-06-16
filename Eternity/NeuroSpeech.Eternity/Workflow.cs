@@ -8,6 +8,11 @@ using System.Threading.Tasks;
 
 namespace NeuroSpeech.Eternity
 {
+    public class EventResult
+    {
+        public string EventName { get; set; }
+        public string Value { get; set; }
+    }
 
     public abstract class Workflow<TWorkflow,TInput,TOutput>: IWorkflow
         where TWorkflow: Workflow<TWorkflow,TInput,TOutput>
@@ -15,7 +20,7 @@ namespace NeuroSpeech.Eternity
 
         public static Task<string> CreateAsync(EternityContext context, TInput input)
         {
-            return context.CreateAsync<TInput, TOutput>(ClrHelper.Instance.GetDerived(typeof(TWorkflow)), input);
+            return context.CreateAsync<TInput, TOutput>(typeof(TWorkflow), input);
         }
 
 
@@ -36,28 +41,38 @@ namespace NeuroSpeech.Eternity
             this.CurrentUtc = start;
         }
 
-        public Task<string> WaitForExternalEventsAsync(string[] names, TimeSpan delay)
+        public Task<EventResult> WaitForExternalEventsAsync(TimeSpan maxWait,params string[] names)
         {
-            if(delay.TotalMilliseconds <= 0)
+            if(maxWait.TotalMilliseconds <= 0)
             {
-                throw new NotSupportedException();
+                throw new ArgumentException($"{nameof(maxWait)} cannot be in the past");
             }
-            return Context.WaitForExternalEventsAsync(this, typeof(TWorkflow), ID, names, CurrentUtc.Add( delay));
+            if(names.Length == 0)
+            {
+                throw new ArgumentException($"{nameof(names)} cannot be empty");
+            }
+            return Context.WaitForExternalEventsAsync(this, typeof(TWorkflow), ID, names, CurrentUtc.Add( maxWait));
         }
 
         public Task Delay(TimeSpan timeout)
         {
+            if (timeout.TotalMilliseconds <= 0)
+            {
+                throw new ArgumentException($"{nameof(timeout)} cannot be in the past");
+            }
             return Context.Delay(this, typeof(TWorkflow), ID, CurrentUtc.Add(timeout));
         }
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public Task<T> ScheduleResultAsync<T>(MethodInfo fx, params object[] items)
+        public Task<T> ScheduleResultAsync<T>(string method, params object[] items)
         {
+            var fx = typeof(TWorkflow).GetMethod(method);
             return Context.ScheduleAsync<TWorkflow, T>(this, ID, CurrentUtc, fx, items);
         }
 
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public Task ScheduleAsync(MethodInfo fx, params object[] items)
+        public Task ScheduleAsync(string method, params object[] items)
         {
+            var fx = typeof(TWorkflow).GetMethod(method);
             return Context.ScheduleAsync<TWorkflow>(this, ID, CurrentUtc, fx, items);
         }
 

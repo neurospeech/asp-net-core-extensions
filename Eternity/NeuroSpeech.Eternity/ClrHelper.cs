@@ -86,13 +86,16 @@ namespace NeuroSpeech.Eternity
             if(hasReturnValue)
             {
                 var resultType = method.ReturnType.GenericTypeArguments[0];
-                targetMethod = method.DeclaringType.GetMethod("ScheduleResultAsync");
+                targetMethod = method.DeclaringType.GetMethod("ScheduleResultAsync")
+                    .MakeGenericMethod(resultType);
             } else
             {
                 targetMethod = method.DeclaringType.GetMethod("ScheduleAsync");
             }
 
             il.Emit(OpCodes.Ldarg_0);
+
+            il.Emit(OpCodes.Ldstr, method.Name);
 
             var pas = method.GetParameters();
             il.EmitConstant(pas.Length);
@@ -101,7 +104,7 @@ namespace NeuroSpeech.Eternity
             {
                 il.Emit(OpCodes.Dup);
                 il.EmitConstant(i);
-                il.EmitLoadArg(i);
+                il.EmitLoadArg(i+1);
                 var pat = pa[i];
                 if(pat.IsValueType)
                 {
@@ -111,7 +114,7 @@ namespace NeuroSpeech.Eternity
                 il.Emit(OpCodes.Stelem_Ref);
             }
 
-            il.Emit(OpCodes.Callvirt, targetMethod);
+            il.Emit(OpCodes.Call, targetMethod);
             il.Emit(OpCodes.Ret);
             return;
         }

@@ -10,6 +10,8 @@ namespace NeuroSpeech.Eternity
 
         Type InputType { get; }
 
+        DateTimeOffset CurrentUtc { get; }
+
         Task<object> RunAsync(object input);
     }
 }

@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 namespace NeuroSpeech.Eternity
 {
 
-    public abstract class EternityContext
+    public class EternityContext
     {
         private readonly IEternityStorage storage;
         private readonly IServiceProvider services;
@@ -43,8 +43,9 @@ namespace NeuroSpeech.Eternity
         {
             id ??= Guid.NewGuid().ToString("N");
             var utcNow = clock.UtcNow;
-            var key = ActivityStep.Workflow(id, type, typeof(TOutput), input, utcNow, utcNow, options);
-            await storage.ScheduleActivityAsync(key);
+            var key = WorkflowStep.Workflow(id, type, input, utcNow, utcNow, options);
+            key = await storage.InsertAsync(key);
+            await storage.QueueWorkflowAsync(key.ID, utcNow);
             return id;
         }
 
@@ -52,31 +53,39 @@ namespace NeuroSpeech.Eternity
         {
             while(!cancellationToken.IsCancellationRequested)
             {
-                var items = await storage.GetScheduledActivitiesAsync();
-                await Task.WhenAll(items.Select(RunWorkflowAsync));
+                await ProcessMessagesOnceAsync();
             }
         }
 
-        private async Task RunWorkflowAsync(ActivityStep step)
+        public async Task ProcessMessagesOnceAsync()
         {
-            if (step.ActivityType != ActivityType.Workflow)
-                throw new InvalidOperationException();
+            var items = await storage.GetScheduledActivitiesAsync();
+            await Task.WhenAll(items.Select(RunWorkflowAsync));
 
-            var workflowType = Type.GetType(step.WorkflowType);
+        }
+
+        private async Task RunWorkflowAsync(WorkflowStep step)
+        {
+            if (step.Status == ActivityStatus.Completed || step.Status == ActivityStatus.Failed)
+                return;
+
+            var workflowType = ClrHelper.Instance.GetDerived(Type.GetType(step.WorkflowType));
             // we need to begin...
             var instance = GetWorkflowInstance(workflowType, step.ID, step.LastUpdated);
-            var input = JsonSerializer.Deserialize(step.Parameters, instance.InputType, options);
+            var input = JsonSerializer.Deserialize(step.Parameter, instance.InputType, options);
             try
             {
                 var result = await instance.RunAsync(input);
                 step.Result = JsonSerializer.Serialize(result, options);
                 step.LastUpdated = clock.UtcNow;
                 step.Status = ActivityStatus.Completed;
+                await storage.UpdateAsync(step);
+                return;
             }
             catch (ActivitySuspendedException)
             {
                 step.Status = ActivityStatus.Suspended;
-                step.LastUpdated = clock.UtcNow;
+                // step.LastUpdated = clock.UtcNow;
             } catch(Exception ex)
             {
                 step.Error = ex.ToString();
@@ -88,8 +97,8 @@ namespace NeuroSpeech.Eternity
 
         internal async Task Delay(IWorkflow workflow, Type type, string id, DateTimeOffset timeout)
         {
-            var utcNow = clock.UtcNow;
-            var key = ActivityStep.Delay(id, type, timeout, utcNow);
+            
+            var key = ActivityStep.Delay(id, timeout, workflow.CurrentUtc);
             var status = await GetActivityResultAsync(key);
 
             switch (status.Status)
@@ -101,13 +110,17 @@ namespace NeuroSpeech.Eternity
                     workflow.SetCurrentTime(status.LastUpdated);
                     throw new ActivityFailedException(status.Error);
                 case ActivityStatus.None:
-                    status = await storage.ScheduleActivityAsync(key);
+                    await storage.QueueWorkflowAsync(key.ID, key.ETA);
                     break;
             }
 
-            if(status.ETA <= utcNow)
+            var utcNow = clock.UtcNow;
+            if (status.ETA <= utcNow)
             {
                 // this was in the past...
+                status.Status = ActivityStatus.Completed;
+                status.Result = "null";
+                await storage.UpdateAsync(status);
                 return;
             }
 
@@ -116,6 +129,10 @@ namespace NeuroSpeech.Eternity
                 throw new ActivitySuspendedException();
 
             await Task.Delay(diff);
+
+            status.Status = ActivityStatus.Completed;
+            status.Result = "null";
+            await storage.UpdateAsync(status);
         }
 
         /// <summary>
@@ -139,53 +156,70 @@ namespace NeuroSpeech.Eternity
                     throw new NotSupportedException();
                 return;
             }
-            key.Result = value;
+            key.Result = Serialize(new EventResult {
+                EventName = eventName,
+                Value = value
+            });
             key.ETA = clock.UtcNow;
+            key.Status = ActivityStatus.Completed;
             await storage.UpdateAsync(key);
-            await storage.ScheduleActivityAsync(key);
+            await storage.QueueWorkflowAsync(key.ID, key.ETA);
         }
 
-        internal async Task<string> WaitForExternalEventsAsync(IWorkflow workflow, Type type, string id, string[] names, DateTimeOffset eta)
+        internal async Task<EventResult> WaitForExternalEventsAsync(IWorkflow workflow, Type type, string id, string[] names, DateTimeOffset eta)
         {
-            var utcNow = clock.UtcNow;
-            var key = ActivityStep.Event(id, type, names, eta, utcNow);
+            var key = ActivityStep.Event(id, names, eta, workflow.CurrentUtc);
+
+            var status = await GetActivityResultAsync(key);
 
             while (true)
             {
-
-                var status = await GetActivityResultAsync(key);
 
                 switch (status.Status)
                 {
                     case ActivityStatus.Completed:
                         workflow.SetCurrentTime(status.LastUpdated);
-                        return status.AsResult<string>(options);
+                        return status.AsResult<EventResult>(options);
                     case ActivityStatus.Failed:
                         workflow.SetCurrentTime(status.LastUpdated);
                         throw new ActivityFailedException(status.Error);
-                    case ActivityStatus.None:
-                        status = await storage.ScheduleActivityAsync(status);
-                        break;
                 }
 
+                var utcNow = clock.UtcNow;
                 if (status.ETA <= utcNow)
                 {
                     // this was in the past...
-                    return status.Result;
+                    return status.AsResult<EventResult>(options);
                 }
 
                 var diff = status.ETA - utcNow;
                 if (diff.TotalSeconds > 15)
+                {
                     throw new ActivitySuspendedException();
+                }
 
                 await Task.Delay(diff);
+
+                status = await GetActivityResultAsync(status);
+                if(status.Status == ActivityStatus.Running)
+                {
+                    status.Result = Serialize(new EventResult { });
+                    status.Status = ActivityStatus.Completed;
+                    status.LastUpdated = clock.UtcNow;
+                    await storage.UpdateAsync(status);
+                }
             }
         }
 
         internal async Task<ActivityStep> GetActivityResultAsync(ActivityStep key)
         {
-            
-            return (await storage.GetStatusAsync(key)) ?? key;
+            var r = await storage.GetStatusAsync(key);
+            if (r != null){
+                return r;
+            }
+            key = await storage.InsertActivityAsync(key);
+            key.QueueToken = await storage.QueueWorkflowAsync(key.ID, key.ETA);
+            return key;
         }
 
         public TActivityOutput Deserialize<TActivityOutput>(string result)
@@ -200,14 +234,14 @@ namespace NeuroSpeech.Eternity
             MethodInfo method,
             params object[] input)
         {
-            var utcNow = clock.UtcNow;
-            var key = ActivityStep.Activity(ID, typeof(T), method, input, after, utcNow, options);
+            var key = ActivityStep.Activity(ID, method, input, after, workflow.CurrentUtc, options);
 
             while (true)
             {
 
                 // has result...
                 var task = await GetActivityResultAsync(key);
+                var utcNow = clock.UtcNow;
 
                 switch (task.Status)
                 {
@@ -219,7 +253,7 @@ namespace NeuroSpeech.Eternity
                         return;
                     case ActivityStatus.None:
                         // lets schedule...
-                        await storage.ScheduleActivityAsync(key);
+                        await storage.QueueWorkflowAsync(key.ID, key.ETA);
                         if ((after - clock.UtcNow).TotalMinutes > 1)
                         {
                             throw new ActivitySuspendedException();
@@ -232,7 +266,7 @@ namespace NeuroSpeech.Eternity
                         break;
                 }
 
-                await RunActivityAsync(task);
+                await RunActivityAsync(workflow, task);
             }
 
 
@@ -258,15 +292,15 @@ namespace NeuroSpeech.Eternity
             MethodInfo method, 
             params object[] input)
         {
-            var utcNow = clock.UtcNow;
 
-            var key = ActivityStep.Activity(ID, type, method, input, after, utcNow, options);
+            var key = ActivityStep.Activity(ID, method, input, after, workflow.CurrentUtc, options);
 
             while (true)
             {
 
                 // has result...
                 var task = await GetActivityResultAsync(key);
+                var utcNow = clock.UtcNow;
 
                 switch (task.Status)
                 {
@@ -276,37 +310,28 @@ namespace NeuroSpeech.Eternity
                     case ActivityStatus.Completed:
                         workflow.SetCurrentTime(task.LastUpdated);
                         return task.AsResult<TActivityOutput>(options);
-                    case ActivityStatus.None:
-                        // lets schedule...
-                        await storage.ScheduleActivityAsync(key);
-                        if ((after - clock.UtcNow).TotalMinutes > 1)
-                        {
-                            throw new ActivitySuspendedException();
-                        }
-                        break;
-                    case ActivityStatus.Suspended:
-                    case ActivityStatus.Running:
-                        if ((task.ETA - clock.UtcNow).TotalMinutes > 1)
-                            throw new ActivitySuspendedException();
-                        break;
                 }
 
-                await RunActivityAsync(task);
+                var diff = task.ETA - clock.UtcNow;
+                if(diff.TotalSeconds > 15)
+                {
+                    throw new ActivitySuspendedException();
+                }
+
+                await RunActivityAsync(workflow, task);
             }
 
 
         }
 
-        internal async Task RunActivityAsync(ActivityStep key)
+        internal async Task RunActivityAsync(IWorkflow workflow, ActivityStep key)
         {
 
             var task = await GetActivityResultAsync(key);
 
             var sequenceId = task.SequenceID;
 
-            var type = Type.GetType(key.WorkflowType);
-
-            var instance = GetWorkflowInstance(type, key.ID, key.ETA);
+            var type = workflow.GetType().BaseType;
 
             // we are supposed to run this activity now...
             // acquire execution lock...
@@ -331,14 +356,19 @@ namespace NeuroSpeech.Eternity
 
                     var parameters = BuildParameters(method, key.Parameters, scope.ServiceProvider);
 
-                    var result = await method.RunAsync(instance, parameters, options);
+                    var result = await method.RunAsync(workflow, parameters, options);
                     key.Result = result;
+                    key.Status = ActivityStatus.Completed;
+                    key.LastUpdated = clock.UtcNow;
                     await storage.UpdateAsync(key);
                     return;
 
                 }
                 catch (Exception ex) when (!(ex is ActivitySuspendedException))
                 {
+                    key.Error = ex.ToString();
+                    key.Status = ActivityStatus.Failed;
+                    key.LastUpdated = clock.UtcNow;
                     await storage.UpdateAsync(key);
                     throw new ActivityFailedException(ex.ToString());
                 }
@@ -385,7 +415,7 @@ namespace NeuroSpeech.Eternity
 
         public string Serialize<TActivityOutput>(TActivityOutput result)
         {
-            return JsonSerializer.Serialize<TActivityOutput>(result);
+            return JsonSerializer.Serialize(result);
         }
 
         internal Task FreeLockAsync(IEternityLock executionLock)

@@ -8,6 +8,7 @@ namespace NeuroSpeech.Eternity.Tests.Mocks
     public class MockDatabase
     {
         private List<ActivityStep> list = new List<ActivityStep>();
+        private List<WorkflowStep> workflows = new List<WorkflowStep>();
 
         internal Task<ActivityStep> InsertAsync(ActivityStep key)
         {
@@ -28,11 +29,12 @@ namespace NeuroSpeech.Eternity.Tests.Mocks
             return Task.CompletedTask;
         }
 
-        internal Task<ActivityStep> SearchAsync(string id, ActivityType workflow)
+        internal Task<WorkflowStep> SearchAsync(string id, ActivityType workflow)
         {
             lock (this)
             {
-                return Task.FromResult(list.FirstOrDefault(x => x.ID == id && x.ActivityType == workflow));
+                return Task.FromResult(workflows
+                    .FirstOrDefault(x => x.ID == id));
             }
         }
 
@@ -47,9 +49,19 @@ namespace NeuroSpeech.Eternity.Tests.Mocks
             }
         }
 
-        internal ActivityStep[] GetReadyAsync(DateTimeOffset utcNow)
+        internal WorkflowStep[] GetReadyAsync(DateTimeOffset utcNow)
         {
-            return list.Where(x => x.ETA <= utcNow).Take(10).ToArray();
+            var steps = new List<WorkflowStep>();
+            foreach(var item in list.Where(x => x.ETA <= utcNow).GroupBy(x => x.ID))
+            {
+                var workflow = workflows
+                    .FirstOrDefault(x => x.ID == item.Key);
+                steps.Add(workflow);
+                if (steps.Count == 0)
+                    break;
+            }
+            return steps.ToArray();
+            
         }
 
         internal ActivityStep GetEventAsync(string id, string eventName)
@@ -58,6 +70,33 @@ namespace NeuroSpeech.Eternity.Tests.Mocks
                 && x.ActivityType == ActivityType.Event
                 && x.Status != ActivityStatus.Completed
                 && x.Status != ActivityStatus.Failed);
+        }
+
+        internal Task<WorkflowStep> InsertAsync(WorkflowStep step)
+        {
+            lock (this)
+            {
+                if (string.IsNullOrWhiteSpace(step.ID))
+                {
+                    step.ID = Guid.NewGuid().ToString("N");
+                } else
+                {
+                    if (workflows.Any(x => x.ID == step.ID))
+                        throw new ArgumentException($"Workflow for ID {step.ID} already exists");
+                }
+                workflows.Add(step);
+                return Task.FromResult(step);
+            }
+        }
+
+        internal Task UpdateAsync(WorkflowStep key)
+        {
+            lock (this)
+            {
+                var index = workflows.FindIndex(x => x.ID == key.ID);
+                workflows[index] = key;
+            }
+            return Task.CompletedTask;
         }
     }
 }
