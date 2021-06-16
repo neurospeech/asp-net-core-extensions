@@ -13,8 +13,8 @@ namespace NeuroSpeech.Eternity.Tests.Mocks
         {
             lock (this)
             {
-                key.SequenceID = list.Count;
                 list.Add(key);
+                key.SequenceID = list.Count;
             }
             return Task.FromResult(key);
         }
@@ -23,7 +23,7 @@ namespace NeuroSpeech.Eternity.Tests.Mocks
         {
             lock (this)
             {
-                list[(int)key.SequenceID] = key;
+                list[(int)key.SequenceID-1] = key;
             }
             return Task.CompletedTask;
         }
@@ -36,14 +36,14 @@ namespace NeuroSpeech.Eternity.Tests.Mocks
             }
         }
 
-        internal Task<ActivityStep> SearchAsync(string id, ActivityType activityType, string parametersHash, string parameters)
+        internal Task<ActivityStep> SearchAsync(string id, ActivityType activityType, string keyHash, string key)
         {
             lock (this)
             {
                 return Task.FromResult(list.FirstOrDefault(x => x.ID == id 
                 && x.ActivityType == activityType 
-                && x.ParametersHash == parametersHash 
-                && x.Parameters == parameters));
+                && x.KeyHash == keyHash 
+                && x.Key == key));
             }
         }
 

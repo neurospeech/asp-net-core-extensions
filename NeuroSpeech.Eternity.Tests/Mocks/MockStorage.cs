@@ -61,7 +61,7 @@ namespace NeuroSpeech.Eternity.Tests.Mocks
 
         public Task<ActivityStep> GetStatusAsync(ActivityStep key)
         {
-            return db.SearchAsync(key.ID, key.ActivityType, key.ParametersHash, key.Parameters);
+            return db.SearchAsync(key.ID, key.ActivityType, key.KeyHash, key.Key);
         }
 
         public Task<ActivityStep> GetWorkflowAsync(string id)

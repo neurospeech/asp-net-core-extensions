@@ -27,7 +27,7 @@ namespace NeuroSpeech.Eternity
 
         public ActivityType ActivityType { get; set; }
 
-        public long SequenceID { get;set; }
+        public long SequenceID { get; set; }
 
         public DateTimeOffset DateCreated { get; set; }
 
@@ -35,7 +35,11 @@ namespace NeuroSpeech.Eternity
 
         public DateTimeOffset ETA { get; set; }
 
-        public string ParametersHash { get; set; }
+        // public string ParametersHash { get; set; }
+
+        public string Key => $"{ID}-{ActivityType}-{DateCreated.Ticks}-{Parameters}";
+
+        public string KeyHash => Convert.ToBase64String( sha.ComputeHash( System.Text.Encoding.UTF8.GetBytes(Key) ) );
 
         public string Parameters { get; set; }
 
@@ -68,7 +72,7 @@ namespace NeuroSpeech.Eternity
             step.ActivityType = ActivityType.Delay;
             step.ID = id;
             step.Parameters = JsonSerializer.Serialize(eta.Ticks);
-            step.ParametersHash = Convert.ToBase64String(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(step.Parameters)));
+            // step.ParametersHash = Convert.ToBase64String(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(step.Parameters)));
             step.ETA = eta;
             step.DateCreated = now;
             step.LastUpdated = now;
@@ -89,7 +93,7 @@ namespace NeuroSpeech.Eternity
             step.ActivityType = ActivityType.Event;
             step.ID = id;
             step.Parameters = JsonSerializer.Serialize(events);
-            step.ParametersHash = Convert.ToBase64String(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(step.Parameters)));
+            // step.ParametersHash = Convert.ToBase64String(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(step.Parameters)));
             step.ETA = eta;
             step.DateCreated = now;
             step.LastUpdated = now;
@@ -114,7 +118,7 @@ namespace NeuroSpeech.Eternity
             step.ID = id;
             step.Method = method.Name;
             step.Parameters = JsonSerializer.Serialize(parameters.Select(x => JsonSerializer.Serialize(x, options) ), options);
-            step.ParametersHash = Convert.ToBase64String(sha.ComputeHash( System.Text.Encoding.UTF8.GetBytes(step.Parameters)));
+            // step.ParametersHash = Convert.ToBase64String(sha.ComputeHash( System.Text.Encoding.UTF8.GetBytes(step.Parameters)));
             step.ETA = eta;
             step.DateCreated = now;
             step.LastUpdated = now;
@@ -138,7 +142,7 @@ namespace NeuroSpeech.Eternity
             step.OutputType = outputType.AssemblyQualifiedName;
             step.ID = id;
             step.Parameters = JsonSerializer.Serialize(input, options);
-            step.ParametersHash = Convert.ToBase64String(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(step.Parameters)));
+            // step.ParametersHash = Convert.ToBase64String(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(step.Parameters)));
             step.ETA = eta;
             step.DateCreated = now;
             step.LastUpdated = now;
