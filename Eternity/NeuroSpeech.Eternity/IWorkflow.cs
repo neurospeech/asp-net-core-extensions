@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace NeuroSpeech.Eternity
@@ -13,5 +14,8 @@ namespace NeuroSpeech.Eternity
         DateTimeOffset CurrentUtc { get; }
 
         Task<object> RunAsync(object input);
+        
+        IList<string> QueueItemList { get; }
+
     }
 }

@@ -32,6 +32,8 @@ namespace NeuroSpeech.Eternity
 
         Type IWorkflow.InputType => typeof(TInput);
 
+        IList<string> IWorkflow.QueueItemList { get; } = new List<string>();
+
         public abstract Task<TOutput> RunAsync(TInput input);
 
         void IWorkflow.Init(string id, EternityContext context, DateTimeOffset start)
@@ -51,7 +53,7 @@ namespace NeuroSpeech.Eternity
             {
                 throw new ArgumentException($"{nameof(names)} cannot be empty");
             }
-            return Context.WaitForExternalEventsAsync(this, typeof(TWorkflow), ID, names, CurrentUtc.Add( maxWait));
+            return Context.WaitForExternalEventsAsync(this, ID, names, CurrentUtc.Add(maxWait));
         }
 
         public Task Delay(TimeSpan timeout)

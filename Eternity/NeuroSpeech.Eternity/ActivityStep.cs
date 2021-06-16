@@ -81,7 +81,7 @@ namespace NeuroSpeech.Eternity
 
         public string Result { get; set; }
 
-        internal IQueueToken QueueToken { get; set; }
+        public string QueueToken { get; set; }
 
         private static SHA256 sha = SHA256.Create();
 

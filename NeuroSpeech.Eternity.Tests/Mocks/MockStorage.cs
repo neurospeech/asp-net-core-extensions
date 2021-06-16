@@ -18,6 +18,11 @@ namespace NeuroSpeech.Eternity.Tests.Mocks
     
     }
 
+    public class MockQueueItem: WorkflowQueueItem
+    {
+        public DateTimeOffset ETA { get; set; }
+    }
+
     public class MockStorage : IEternityStorage
     {
         private readonly IEternityClock clock;
@@ -25,7 +30,7 @@ namespace NeuroSpeech.Eternity.Tests.Mocks
 
         private List<ActivityStep> list = new List<ActivityStep>();
         private List<WorkflowStep> workflows = new List<WorkflowStep>();
-        private List<QueueToken> queue = new List<QueueToken>();
+        private List<MockQueueItem> queue = new List<MockQueueItem>();
 
 
         public MockStorage(IEternityClock clock)
@@ -33,9 +38,11 @@ namespace NeuroSpeech.Eternity.Tests.Mocks
             this.clock = clock;
         }
 
-        public async Task<IEternityLock> AcquireLockAsync(long sequenceId)
+        public int QueueSize => queue.Count;
+
+        public async Task<IEternityLock> AcquireLockAsync(string id, long sequenceId)
         {
-            var key = sequenceId.ToString();
+            var key = $"{id}-{sequenceId}";
             var newLock = new MockLock(key);
             while(true)
             {
@@ -63,15 +70,13 @@ namespace NeuroSpeech.Eternity.Tests.Mocks
             return Task.FromResult(e);
         }
 
-        public Task<WorkflowStep[]> GetScheduledActivitiesAsync()
+        public Task<WorkflowQueueItem[]> GetScheduledActivitiesAsync()
         {
-            var ready = queue.Where(x => x.ETA <= clock.UtcNow).ToList();
-            var steps = ready.GroupBy(x => x.ID).Select(x => workflows.FirstOrDefault(w => w.ID == x.Key)).ToArray();
-            foreach (var item in ready)
-            {
-                queue.Remove(item);
-            }
-            return Task.FromResult(steps);
+            var pending = queue
+                .Where(x => x.ETA <= clock.UtcNow)
+                .OfType<WorkflowQueueItem>()
+                .ToArray();
+            return Task.FromResult(pending);
         }
 
         public Task<ActivityStep> GetStatusAsync(ActivityStep key)
@@ -95,7 +100,7 @@ namespace NeuroSpeech.Eternity.Tests.Mocks
             return Task.FromResult(key);
         }
 
-        public Task<WorkflowStep> InsertAsync(WorkflowStep step)
+        public Task<WorkflowStep> InsertWorkflowAsync(WorkflowStep step)
         {
             if(string.IsNullOrEmpty(step.ID))
             {
@@ -109,19 +114,26 @@ namespace NeuroSpeech.Eternity.Tests.Mocks
             return Task.FromResult(step);
         }
 
-        public Task<IQueueToken> QueueWorkflowAsync(string id, DateTimeOffset after)
+        public Task<string> QueueWorkflowAsync(string id, DateTimeOffset after, string existing = null)
         {
-            var qt = new QueueToken(id, after);
+            if(existing != null)
+            {
+                var e = queue.FirstOrDefault(x => x.QueueToken == existing);
+                e.ETA = after;
+                e.ID = id;
+                return Task.FromResult(existing);
+            }
+            var qt = new MockQueueItem { ID = id, ETA = after , QueueToken = Guid.NewGuid().ToString("N") };
             queue.Add(qt);
-            return Task.FromResult<IQueueToken>(qt);
+            return Task.FromResult<string>(qt.QueueToken);
         }
 
-        public Task RemoveQueueAsync(IQueueToken token)
+        public Task RemoveQueueAsync(params string[] tokens)
         {
-            if(token != null)
+            foreach (var token in tokens)
             {
-                var t = token as QueueToken;
-                queue.Remove(t);
+                int index = queue.FindIndex(x => x.QueueToken == token);
+                queue.RemoveAt(index);
             }
             return Task.CompletedTask;
         }

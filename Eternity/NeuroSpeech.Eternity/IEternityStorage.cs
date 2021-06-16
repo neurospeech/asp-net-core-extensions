@@ -9,39 +9,40 @@ namespace NeuroSpeech.Eternity
 
     }
 
+    public class  WorkflowQueueItem {
+        public string ID { get; set; }
+
+        public string QueueToken { get; set; }
+    }
+
     public interface IEternityStorage
     {
-        Task<IEternityLock> AcquireLockAsync(long sequenceId);
+        Task<IEternityLock> AcquireLockAsync(string id, long sequenceId);
         Task FreeLockAsync(IEternityLock executionLock);
         Task<ActivityStep> GetStatusAsync(ActivityStep key);
 
         Task<WorkflowStep> GetWorkflowAsync(string id);
 
-        Task<WorkflowStep> InsertAsync(WorkflowStep step);
+        /// <summary>
+        /// Insert the workflow, if ID already exists in the system, throw an error
+        /// </summary>
+        /// <param name="step"></param>
+        /// <returns></returns>
+        Task<WorkflowStep> InsertWorkflowAsync(WorkflowStep step);
 
         /// <summary>
-        /// Before queue, check if the workflow exits for the same id which is already completed or failed,
-        /// throw and exception
+        /// Queue the workflow id if it is not completed or failed, otherwise do not do anything and return null
         /// </summary>
         /// <param name="step"></param>
         /// <param name="after"></param>
         /// <returns></returns>
-        Task<IQueueToken> QueueWorkflowAsync(string id, DateTimeOffset after);
+        Task<string> QueueWorkflowAsync(string id, DateTimeOffset after, string existing = null);
 
-        Task RemoveQueueAsync(IQueueToken token);
+        Task RemoveQueueAsync(params string[] token);
 
-        /// <summary>
-        /// ScheduleActivity must set SequenceID which can be used for locking.
-        /// 
-        /// Set Status to Running always... 
-        /// 
-        /// Put Workflow Activity on the Queue, not this activity itself
-        /// </summary>
-        /// <param name="key"></param>
-        /// <returns></returns>
         Task<ActivityStep> InsertActivityAsync(ActivityStep key);
 
-        Task<WorkflowStep[]> GetScheduledActivitiesAsync();
+        Task<WorkflowQueueItem[]> GetScheduledActivitiesAsync();
 
         Task UpdateAsync(ActivityStep key);
 
