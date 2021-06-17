@@ -71,10 +71,13 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSpeech.Workflows", "NeuroSpeech.Workflows\NeuroSpeech.Workflows.csproj", "{9BEFAC8E-3F9F-4006-B6E9-7E8A41C797D1}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Eternity", "Eternity", "{33A3E9CA-3C70-4438-A28A-4CD2D55DF511}"
+	ProjectSection(SolutionItems) = preProject
+		Eternity\README.md = Eternity\README.md
+	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSpeech.Eternity", "Eternity\NeuroSpeech.Eternity\NeuroSpeech.Eternity.csproj", "{605D5AEC-58B8-46D6-87C8-6C35F9CD1A4B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NeuroSpeech.Eternity.Tests", "NeuroSpeech.Eternity.Tests\NeuroSpeech.Eternity.Tests.csproj", "{B9D79E57-8C6C-4E8C-83D7-8A4CBA169BF8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSpeech.Eternity.Tests", "Eternity\NeuroSpeech.Eternity.Tests\NeuroSpeech.Eternity.Tests.csproj", "{6F370355-C2A9-46A7-9EF1-27EF19746E29}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -162,10 +165,10 @@ Global
 		{605D5AEC-58B8-46D6-87C8-6C35F9CD1A4B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{605D5AEC-58B8-46D6-87C8-6C35F9CD1A4B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{605D5AEC-58B8-46D6-87C8-6C35F9CD1A4B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B9D79E57-8C6C-4E8C-83D7-8A4CBA169BF8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B9D79E57-8C6C-4E8C-83D7-8A4CBA169BF8}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B9D79E57-8C6C-4E8C-83D7-8A4CBA169BF8}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B9D79E57-8C6C-4E8C-83D7-8A4CBA169BF8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6F370355-C2A9-46A7-9EF1-27EF19746E29}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6F370355-C2A9-46A7-9EF1-27EF19746E29}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6F370355-C2A9-46A7-9EF1-27EF19746E29}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6F370355-C2A9-46A7-9EF1-27EF19746E29}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -192,7 +195,7 @@ Global
 		{2A5AF3E1-F188-46C4-9B3F-0B092DE7BBEF} = {FA937D44-8531-46C8-B79C-28E1E2ACE98D}
 		{9BEFAC8E-3F9F-4006-B6E9-7E8A41C797D1} = {1BECAAB5-DE53-4F61-9655-EB746F209E14}
 		{605D5AEC-58B8-46D6-87C8-6C35F9CD1A4B} = {33A3E9CA-3C70-4438-A28A-4CD2D55DF511}
-		{B9D79E57-8C6C-4E8C-83D7-8A4CBA169BF8} = {33A3E9CA-3C70-4438-A28A-4CD2D55DF511}
+		{6F370355-C2A9-46A7-9EF1-27EF19746E29} = {33A3E9CA-3C70-4438-A28A-4CD2D55DF511}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {65594421-E05B-4646-94E0-260254DC3212}
