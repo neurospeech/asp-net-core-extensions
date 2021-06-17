@@ -38,13 +38,12 @@ namespace NeuroSpeech.Eternity.Tests.Mocks
             }
         }
 
-        internal Task<ActivityStep> SearchAsync(string id, ActivityType activityType, string keyHash, string key)
+        internal Task<ActivityStep> SearchAsync(string id, ActivityType activityType, string key)
         {
             lock (this)
             {
                 return Task.FromResult(list.FirstOrDefault(x => x.ID == id 
                 && x.ActivityType == activityType 
-                && x.KeyHash == keyHash 
                 && x.Key == key));
             }
         }

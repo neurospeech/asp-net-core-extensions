@@ -115,7 +115,7 @@ namespace NeuroSpeech.Eternity.Tests
 
             await context.ProcessMessagesOnceAsync();
 
-            Assert.IsTrue(emailService.Emails.Count == 2);
+            Assert.AreEqual(2, emailService.Emails.Count);
 
             await context.RaiseEventAsync(id, SignupWorkflow.Verify, code);
 

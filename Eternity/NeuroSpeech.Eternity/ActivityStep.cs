@@ -69,9 +69,7 @@ namespace NeuroSpeech.Eternity
 
         // public string ParametersHash { get; set; }
 
-        public string Key => $"{ID}-{ActivityType}-{DateCreated.Ticks}-{Method}-{Parameters}";
-
-        public string KeyHash => Convert.ToBase64String( sha.ComputeHash( System.Text.Encoding.UTF8.GetBytes(Key) ) );
+        public string Key { get; set; }
 
         public string Parameters { get; set; }
 
@@ -104,6 +102,7 @@ namespace NeuroSpeech.Eternity
             step.ETA = eta;
             step.DateCreated = now;
             step.LastUpdated = now;
+            step.Key = $"{step.ID}-{step.ActivityType}-{step.DateCreated.Ticks}-{step.Parameters}";
             return step;
         }
 
@@ -122,11 +121,13 @@ namespace NeuroSpeech.Eternity
             step.ETA = eta;
             step.DateCreated = now;
             step.LastUpdated = now;
+            step.Key = $"{step.ID}-{step.ActivityType}-{step.DateCreated.Ticks}-{step.Parameters}";
             return step;
         }
 
 
         public static ActivityStep Activity(
+            bool uniqueParameters,
             string id, 
             MethodInfo method, 
             object[] parameters, 
@@ -139,10 +140,13 @@ namespace NeuroSpeech.Eternity
             step.ID = id;
             step.Method = method.Name;
             step.Parameters = JsonSerializer.Serialize(parameters.Select(x => JsonSerializer.Serialize(x, options) ), options);
-            // step.ParametersHash = Convert.ToBase64String(sha.ComputeHash( System.Text.Encoding.UTF8.GetBytes(step.Parameters)));
             step.ETA = eta;
             step.DateCreated = now;
             step.LastUpdated = now;
+            step.Key = uniqueParameters 
+                ? $"{step.ID}-{step.ActivityType}-{step.Parameters}"
+                : $"{step.ID}-{step.ActivityType}-{step.DateCreated.Ticks}-{step.Parameters}"; 
+            // step.ParametersHash = Convert.ToBase64String(sha.ComputeHash( System.Text.Encoding.UTF8.GetBytes(step.Parameters)));
             return step;
         }
     }

@@ -235,72 +235,29 @@ namespace NeuroSpeech.Eternity
         }
 
         [EditorBrowsable(EditorBrowsableState.Never)]
-        internal async Task ScheduleAsync<T>(IWorkflow workflow,
-            string ID,
-            DateTimeOffset after,
-            MethodInfo method,
-            params object[] input)
-        {
-            var key = ActivityStep.Activity(ID, method, input, after, workflow.CurrentUtc, options);
-
-            while (true)
-            {
-
-                // has result...
-                var task = await GetActivityResultAsync(workflow, key);
-                var utcNow = clock.UtcNow;
-
-                switch (task.Status)
-                {
-                    case ActivityStatus.Failed:
-                        workflow.SetCurrentTime(task.LastUpdated);
-                        throw new ActivityFailedException(task.Error);
-                    case ActivityStatus.Completed:
-                        workflow.SetCurrentTime(task.LastUpdated);
-                        return;
-                    case ActivityStatus.None:
-                        // lets schedule...
-                        await storage.QueueWorkflowAsync(key.ID, key.ETA);
-                        if ((after - clock.UtcNow).TotalMinutes > 1)
-                        {
-                            throw new ActivitySuspendedException();
-                        }
-                        break;
-                    case ActivityStatus.Suspended:
-                    case ActivityStatus.Running:
-                        if ((task.ETA - clock.UtcNow).TotalMinutes > 1)
-                            throw new ActivitySuspendedException();
-                        break;
-                }
-
-                await RunActivityAsync(workflow, task);
-            }
-
-
-        }
-
-        [EditorBrowsable(EditorBrowsableState.Never)]
         internal Task<TActivityOutput> ScheduleAsync<T, TActivityOutput>(IWorkflow workflow,
+            bool uniqueParameters,
             string ID,
             DateTimeOffset after,
             MethodInfo method,
             params object[] input)
         {
-            return ScheduleAsync<TActivityOutput>(workflow, typeof(T), ID, after, method, input);
+            return ScheduleAsync<TActivityOutput>(typeof(T), workflow, uniqueParameters, ID, after, method, input);
         }
 
 
         [EditorBrowsable(EditorBrowsableState.Never)]
         internal async Task<TActivityOutput> ScheduleAsync<TActivityOutput>(
-            IWorkflow workflow,
             Type type,
+            IWorkflow workflow,
+            bool uniqueParameters,
             string ID, 
             DateTimeOffset after, 
             MethodInfo method, 
             params object[] input)
         {
 
-            var key = ActivityStep.Activity(ID, method, input, after, workflow.CurrentUtc, options);
+            var key = ActivityStep.Activity(uniqueParameters, ID, method, input, after, workflow.CurrentUtc, options);
 
             while (true)
             {
@@ -316,6 +273,8 @@ namespace NeuroSpeech.Eternity
                         throw new ActivityFailedException(task.Error);
                     case ActivityStatus.Completed:
                         workflow.SetCurrentTime(task.LastUpdated);
+                        if (typeof(TActivityOutput) == typeof(object))
+                            return (TActivityOutput)(object)"null";
                         return task.AsResult<TActivityOutput>(options);
                 }
 

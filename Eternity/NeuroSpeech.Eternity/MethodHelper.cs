@@ -103,8 +103,8 @@ namespace NeuroSpeech.Eternity
                 }) as Task<string>);
             }
 
-            await (method.Invoke(target, parameters) as Task);
-            return "";
+            await (method.InvokeNotOverride(target, parameters) as Task);
+            return "null";
         }
 
     }

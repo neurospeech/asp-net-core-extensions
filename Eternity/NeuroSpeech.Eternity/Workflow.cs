@@ -68,15 +68,66 @@ namespace NeuroSpeech.Eternity
         public Task<T> ScheduleResultAsync<T>(string method, params object[] items)
         {
             var fx = typeof(TWorkflow).GetMethod(method);
-            return Context.ScheduleAsync<TWorkflow, T>(this, ID, CurrentUtc, fx, items);
+            var unique = fx.GetCustomAttribute<ActivityAttribute>();
+            return Context.ScheduleAsync<TWorkflow, T>(this, unique.UniqueParameters, ID, CurrentUtc, fx, items);
         }
 
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public Task ScheduleAsync(string method, params object[] items)
+        public async Task ScheduleAsync(string method, params object[] items)
         {
             var fx = typeof(TWorkflow).GetMethod(method);
-            return Context.ScheduleAsync<TWorkflow>(this, ID, CurrentUtc, fx, items);
+            var unique = fx.GetCustomAttribute<ActivityAttribute>();
+            await Context.ScheduleAsync<TWorkflow, object>(this, unique.UniqueParameters, ID, CurrentUtc, fx, items);
         }
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public Task<T> ScheduleAtResultAsync<T>(DateTimeOffset at, string method, params object[] items)
+        {
+            if (at <= CurrentUtc)
+            {
+                throw new ArgumentException($"{nameof(at)} cannot be in the past");
+            }
+            var fx = typeof(TWorkflow).GetMethod(method);
+            var unique = fx.GetCustomAttribute<ActivityAttribute>();
+            return Context.ScheduleAsync<TWorkflow, T>(this, unique.UniqueParameters, ID, at, fx, items);
+        }
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public async Task ScheduleAtAsync(DateTimeOffset at, string method, params object[] items)
+        {
+            if (at <= CurrentUtc)
+            {
+                throw new ArgumentException($"{nameof(at)} cannot be in the past");
+            }
+            var fx = typeof(TWorkflow).GetMethod(method);
+            var unique = fx.GetCustomAttribute<ActivityAttribute>();
+            await Context.ScheduleAsync<TWorkflow, object>(this, unique.UniqueParameters, ID, at, fx, items);
+        }
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public Task<T> ScheduleAtResultAsync<T>(TimeSpan at, string method, params object[] items)
+        {
+            if (at.TotalMilliseconds <= 0)
+            {
+                throw new ArgumentException($"{nameof(at)} cannot be in the past");
+            }
+            var fx = typeof(TWorkflow).GetMethod(method);
+            var unique = fx.GetCustomAttribute<ActivityAttribute>();
+            return Context.ScheduleAsync<TWorkflow, T>(this, unique.UniqueParameters, ID, CurrentUtc.Add(at), fx, items);
+        }
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public async Task ScheduleAtAsync(TimeSpan at, string method, params object[] items)
+        {
+            if (at.TotalMilliseconds <= 0)
+            {
+                throw new ArgumentException($"{nameof(at)} cannot be in the past");
+            }
+            var fx = typeof(TWorkflow).GetMethod(method);
+            var unique = fx.GetCustomAttribute<ActivityAttribute>();
+            await Context.ScheduleAsync<TWorkflow, object>(this, unique.UniqueParameters, ID, CurrentUtc.Add(at), fx, items);
+        }
+
 
         void IWorkflow.SetCurrentTime(DateTimeOffset time)
         {

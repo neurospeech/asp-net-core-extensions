@@ -83,7 +83,6 @@ namespace NeuroSpeech.Eternity.Tests.Mocks
         {
             var item = list.FirstOrDefault(x => x.ID == key.ID
             && x.ActivityType == key.ActivityType
-            && x.KeyHash == key.KeyHash
             && x.Key == key.Key);
             return Task.FromResult(item);
         }
@@ -133,7 +132,10 @@ namespace NeuroSpeech.Eternity.Tests.Mocks
             foreach (var token in tokens)
             {
                 int index = queue.FindIndex(x => x.QueueToken == token);
-                queue.RemoveAt(index);
+                if (index != -1)
+                {
+                    queue.RemoveAt(index);
+                }
             }
             return Task.CompletedTask;
         }
