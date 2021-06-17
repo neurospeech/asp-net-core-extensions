@@ -49,6 +49,35 @@ namespace NeuroSpeech.Eternity
             return id;
         }
 
+        internal async Task<string> CreateAtAsync<TInput, TOutput>(Type type, TInput input, DateTimeOffset at, string id = null)
+        {
+            id ??= Guid.NewGuid().ToString("N");
+            var utcNow = at;
+            var key = WorkflowStep.Workflow(id, type, input, at, utcNow, options);
+            key = await storage.InsertWorkflowAsync(key);
+            await storage.QueueWorkflowAsync(key.ID, at);
+            return id;
+        }
+
+        internal async Task<WorkflowStatus<T>> GetStatusAsync<T>(string id)
+        {
+            var wf = await storage.GetWorkflowAsync(id);
+            var status = new WorkflowStatus<T>();
+            status.Status = wf.Status;
+            status.DateCreated = wf.DateCreated;
+            status.LastUpdate = wf.LastUpdated;
+            switch (wf.Status)
+            {
+                case ActivityStatus.Completed:
+                    status.Result = Deserialize<T>(wf.Result);
+                    break;
+                case ActivityStatus.Failed:
+                    status.Error = wf.Error;
+                    break;
+            }
+            return status;
+        }
+
         public async Task ProcessMessagesAsync(CancellationToken cancellationToken)
         {
             while(!cancellationToken.IsCancellationRequested)

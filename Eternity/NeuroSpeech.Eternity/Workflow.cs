@@ -14,15 +14,97 @@ namespace NeuroSpeech.Eternity
         public string Value { get; set; }
     }
 
+    public class WorkflowStatus<T>
+    {
+        public ActivityStatus Status { get; set; }
+
+        public T Result { get; set; }
+
+        public string Error { get; set; }
+
+        public DateTimeOffset DateCreated { get; set; }
+
+        public DateTimeOffset LastUpdate { get; set; }
+    }
+
+    /// <summary>
+    /// Base class for Eternity Workflow
+    /// </summary>
+    /// <typeparam name="TWorkflow">Workflow itself</typeparam>
+    /// <typeparam name="TInput">Type of input</typeparam>
+    /// <typeparam name="TOutput">Type of output</typeparam>
     public abstract class Workflow<TWorkflow,TInput,TOutput>: IWorkflow
         where TWorkflow: Workflow<TWorkflow,TInput,TOutput>
     {
 
+        /// <summary>
+        /// Creates a new workflow, which will be executed immediately
+        /// </summary>
+        /// <param name="context">Eternity Context</param>
+        /// <param name="input">Input</param>
+        /// <returns></returns>
         public static Task<string> CreateAsync(EternityContext context, TInput input)
         {
             // this will force verification..
             ClrHelper.Instance.GetDerived(typeof(TWorkflow));
             return context.CreateAsync<TInput, TOutput>(typeof(TWorkflow), input);
+        }
+
+        /// <summary>
+        /// Creates a new workflow, which will be executed immediately with given ID, 
+        /// ID must be unique, if workflow with same ID exists, it will throw an error
+        /// </summary>
+        /// <param name="context">Eternity Context</param>
+        /// <param name="id">Workflow ID</param>
+        /// <param name="input">Input</param>
+        /// <returns></returns>
+        public static Task<string> CreateAsync(EternityContext context, string id, TInput input)
+        {
+            // this will force verification..
+            ClrHelper.Instance.GetDerived(typeof(TWorkflow));
+            return context.CreateAsync<TInput, TOutput>(typeof(TWorkflow), input, id);
+        }
+
+
+        /// <summary>
+        /// Creates a new workflow, which will be at specified time
+        /// </summary>
+        /// <param name="context">Eternity Context</param>
+        /// <param name="input">Input</param>
+        /// <param name="at">Start on this time</param>
+        /// <returns></returns>
+        public static Task<string> CreateAtAsync(EternityContext context, TInput input, DateTimeOffset at)
+        {
+            // this will force verification..
+            ClrHelper.Instance.GetDerived(typeof(TWorkflow));
+            return context.CreateAtAsync<TInput, TOutput>(typeof(TWorkflow), input, at);
+        }
+
+        /// <summary>
+        /// Creates a new workflow, which will be at specified time with given ID, 
+        /// ID must be unique, if workflow with same ID exists, it will throw an error
+        /// </summary>
+        /// <param name="context">Eternity Context</param>
+        /// <param name="id">Workflow ID</param>
+        /// <param name="input">Input</param>
+        /// <param name="at">Start on this time</param>
+        /// <returns></returns>
+        public static Task<string> CreateAtAsync(EternityContext context, string id, TInput input, DateTimeOffset at)
+        {
+            // this will force verification..
+            ClrHelper.Instance.GetDerived(typeof(TWorkflow));
+            return context.CreateAtAsync<TInput, TOutput>(typeof(TWorkflow), input, at, id);
+        }
+
+        /// <summary>
+        /// Retrieve status of the workflow
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        public static Task<WorkflowStatus<TOutput>> GetStatusAsync(EternityContext context, string id)
+        {
+            return context.GetStatusAsync<TOutput>(id);
         }
 
         public string ID { get; private set; }
