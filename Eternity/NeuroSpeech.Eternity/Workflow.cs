@@ -20,9 +20,10 @@ namespace NeuroSpeech.Eternity
 
         public static Task<string> CreateAsync(EternityContext context, TInput input)
         {
+            // this will force verification..
+            ClrHelper.Instance.GetDerived(typeof(TWorkflow));
             return context.CreateAsync<TInput, TOutput>(typeof(TWorkflow), input);
         }
-
 
         public string ID { get; private set; }
 
@@ -105,7 +106,7 @@ namespace NeuroSpeech.Eternity
         }
 
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public Task<T> ScheduleAtResultAsync<T>(TimeSpan at, string method, params object[] items)
+        public Task<T> ScheduleAfterResultAsync<T>(TimeSpan at, string method, params object[] items)
         {
             if (at.TotalMilliseconds <= 0)
             {
@@ -117,7 +118,7 @@ namespace NeuroSpeech.Eternity
         }
 
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public async Task ScheduleAtAsync(TimeSpan at, string method, params object[] items)
+        public async Task ScheduleAfterAsync(TimeSpan at, string method, params object[] items)
         {
             if (at.TotalMilliseconds <= 0)
             {

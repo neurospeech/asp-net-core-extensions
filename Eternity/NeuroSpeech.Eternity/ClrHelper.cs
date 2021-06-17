@@ -83,17 +83,48 @@ namespace NeuroSpeech.Eternity
 
             MethodInfo targetMethod;
 
+            var schedule = "Schedule";
+
+            ParameterInfo sat = null;
+            foreach(var p in method.GetParameters())
+            {
+                if(p.GetCustomAttribute<ScheduleAttribute>() != null)
+                {
+                    sat = p;
+                    break;
+                }
+            }
+
+            if(sat != null)
+            {
+                if(sat.ParameterType == typeof(TimeSpan))
+                {
+                    schedule += "After";
+                } else if (sat.ParameterType == typeof(DateTimeOffset))
+                {
+                    schedule += "At";
+                } else
+                {
+                    throw new ArgumentException($"Parameter {sat.Name} can only be TimeSpan or DateTimeOffset and it cannot be null");
+                }
+            }
+
             if(hasReturnValue)
             {
                 var resultType = method.ReturnType.GenericTypeArguments[0];
-                targetMethod = method.DeclaringType.GetMethod("ScheduleResultAsync")
+                targetMethod = method.DeclaringType.GetMethod($"{schedule}ResultAsync")
                     .MakeGenericMethod(resultType);
             } else
             {
-                targetMethod = method.DeclaringType.GetMethod("ScheduleAsync");
+                targetMethod = method.DeclaringType.GetMethod($"{schedule}Async");
             }
 
             il.Emit(OpCodes.Ldarg_0);
+
+            if(sat != null)
+            {
+                il.EmitLoadArg(sat.Position + 1);
+            }
 
             il.Emit(OpCodes.Ldstr, method.Name);
 

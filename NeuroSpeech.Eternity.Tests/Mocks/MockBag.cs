@@ -11,7 +11,7 @@ namespace NeuroSpeech.Eternity.Tests.Mocks
 
         public string this[string key]
         {
-            get => bag[key];
+            get => bag.TryGetValue(key, out var value) ? value : null;
             set => bag[key] = value;
         }
 

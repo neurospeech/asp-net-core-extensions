@@ -26,7 +26,7 @@ namespace NeuroSpeech.Eternity
     /// Use specified TimeSpan or DateTimeOffset to schedule the activity in future
     /// </summary>
     [AttributeUsage(AttributeTargets.Parameter)]
-    public class ScheduleAfterAttribute: Attribute
+    public class ScheduleAttribute: Attribute
     {
 
     }
