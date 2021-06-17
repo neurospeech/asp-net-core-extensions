@@ -147,3 +147,7 @@ We have no idea how and what will happen if you call activities recursively, we 
 ### Nested Activities Not Supported
 
 You cannot call an activity within an activity, by doing so, you will break the execution cycle. An Activity must return control back to the `RunAsync` method and only `RunAsync` method can schedule/call any other activity.
+
+### Storage
+
+Currently we are supporting Azure Queue/Table storage. You can implement your own storage easily.
