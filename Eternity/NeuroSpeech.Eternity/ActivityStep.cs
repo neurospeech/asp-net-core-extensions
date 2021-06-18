@@ -71,6 +71,8 @@ namespace NeuroSpeech.Eternity
 
         public string Key { get; set; }
 
+        public string KeyHash => Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(Key));
+
         public string Parameters { get; set; }
 
         public ActivityStatus Status { get; set; }

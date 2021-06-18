@@ -1,10 +1,13 @@
-﻿using Azure.Data.Tables;
+﻿using Azure;
+using Azure.Data.Tables;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Specialized;
 using Azure.Storage.Queues;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace NeuroSpeech.Eternity
@@ -64,55 +67,196 @@ namespace NeuroSpeech.Eternity
             await bc.ReleaseAsync();
         }
 
-        public Task<ActivityStep> GetEventAsync(string id, string eventName)
+        public async Task<ActivityStep> GetEventAsync(string id, string eventName)
         {
-            throw new NotImplementedException();
+            var filter = Azure.Data.Tables.TableClient.CreateQueryFilter($"PartitionKey eq {id} and RowKey eq {eventName}");
+            string keyHash = null;
+            string key = null;
+            await foreach (var e in Activities.QueryAsync<TableEntity>(filter))
+            {
+                key = e.GetString("Key");
+                keyHash = e.GetString("KeyHash");
+            }
+            if (key == null)
+            {
+                return null;
+            }
+            filter = Azure.Data.Tables.TableClient.CreateQueryFilter($"PartitionKey eq {id} and RowKey eq {keyHash} and Key eq {key}");
+            await foreach(var e in Activities.QueryAsync<TableEntity>(filter))
+            {
+                return e.ToObject<ActivityStep>();
+            }
+            return null;
         }
 
-        public Task<WorkflowQueueItem[]> GetScheduledActivitiesAsync()
+        public async Task<WorkflowQueueItem[]> GetScheduledActivitiesAsync()
         {
-            
-            throw new NotImplementedException();
+            var messages = await QueueClient.ReceiveMessagesAsync(32, TimeSpan.FromDays(1));
+            var data = messages.Value;
+            var items = new WorkflowQueueItem[data.Length];
+            for (int i = 0; i < items.Length; i++)
+            {
+                var item = data[i];
+                items[i] = new WorkflowQueueItem { 
+                    ID = item.Body.ToString(),
+                    QueueToken = $"{item.MessageId},{item.PopReceipt}"
+                };
+            }
+            return items;
         }
 
-        public Task<ActivityStep> GetStatusAsync(ActivityStep key)
+        public async Task<ActivityStep> GetStatusAsync(ActivityStep key)
         {
-            throw new NotImplementedException();
+            var filter = Azure.Data.Tables.TableClient.CreateQueryFilter($"PartitionKey eq {key.ID} and RowKey eq {key.KeyHash} and Key eq {key.Key}");
+            await foreach (var e in Activities.QueryAsync<TableEntity>(filter)) {
+                return e.ToObject<ActivityStep>();
+            }
+            return null;
         }
 
-        public Task<WorkflowStep> GetWorkflowAsync(string id)
+        public async Task<WorkflowStep> GetWorkflowAsync(string id)
         {
-            throw new NotImplementedException();
+            await foreach(var e in Workflows.QueryAsync<TableEntity>(x => x.PartitionKey == id && x.RowKey == "1"))
+            {
+                return e.ToObject<WorkflowStep>();
+            }
+            return null;
         }
 
-        public Task<ActivityStep> InsertActivityAsync(ActivityStep key)
+        public async Task<ActivityStep> InsertActivityAsync(ActivityStep key)
         {
-            throw new NotImplementedException();
+            // generate new id...
+            long id = 1;
+            while (true)
+            {
+                try
+                {
+                    var en = Activities.QueryAsync<TableEntity>(x => x.PartitionKey == key.ID && x.RowKey == "ID").GetAsyncEnumerator();
+                    if (!await en.MoveNextAsync())
+                    {
+                        await Activities.AddEntityAsync<TableEntity>(new TableEntity(key.ID, "ID") {
+                            { "SequenceID", 1 }
+                        });
+                    }
+                    var item = en.Current;
+                    id = item.GetInt64("SequenceID").GetValueOrDefault() + 1;
+                    item["SequenceID"] = id;
+
+                    await Activities.UpdateEntityAsync(item, item.ETag, TableUpdateMode.Replace);
+                    break;
+                }
+                catch (RequestFailedException ex)
+                {
+                    if(ex.Status == 412)
+                    {
+                        continue;
+                    }
+                    throw;
+                }
+            }
+
+            key.SequenceID = id;
+            await Activities.UpsertEntityAsync(key.ToTableEntity(key.ID, key.KeyHash));
+
+            // last active event waiting must be added with eventName
+            if(key.ActivityType == ActivityType.Event)
+            {
+                string[] eventNames = JsonSerializer.Deserialize<string[]>(key.Parameters);
+                foreach(var name in eventNames)
+                {
+                    await Activities.UpsertEntityAsync(new TableEntity(key.ID, name)
+                    {
+                        { "KeyHash", key.KeyHash }                         
+                    }, TableUpdateMode.Replace);
+                }
+            }
+
+            return key;
         }
 
-        public Task<WorkflowStep> InsertWorkflowAsync(WorkflowStep step)
+        public async Task<WorkflowStep> InsertWorkflowAsync(WorkflowStep step)
         {
-            throw new NotImplementedException();
+            await UpdateAsync(step);
+            return step;
         }
 
-        public Task<string> QueueWorkflowAsync(string id, DateTimeOffset after, string existing = null)
+        public async Task<string> QueueWorkflowAsync(string id, DateTimeOffset after, string existing = null)
         {
-            throw new NotImplementedException();
+            var ts = after - DateTimeOffset.UtcNow;
+            var r = await QueueClient.SendMessageAsync(id, ts, ts.Add(TimeSpan.FromDays(10)));
+            return $"{r.Value.MessageId},{r.Value.PopReceipt}";
         }
 
-        public Task RemoveQueueAsync(params string[] token)
+        public Task RemoveQueueAsync(params string[] tokens)
         {
-            throw new NotImplementedException();
+            return Task.WhenAll(tokens.Select(RemoveQueueMessageAsync));
+        }
+
+        private async Task RemoveQueueMessageAsync(string id)
+        {
+            try {
+                var tokens = id.Split(',');
+                await QueueClient.DeleteMessageAsync(tokens[0], tokens[1]);
+            } catch (Exception ex)
+            {
+
+            }
         }
 
         public Task UpdateAsync(ActivityStep key)
         {
-            throw new NotImplementedException();
+            return Activities.UpsertEntityAsync(key.ToTableEntity(key.ID, key.KeyHash));
         }
 
         public Task UpdateAsync(WorkflowStep key)
         {
-            throw new NotImplementedException();
+            return Workflows.UpsertEntityAsync(key.ToTableEntity(key.ID, "1"), TableUpdateMode.Replace);
+        }
+    }
+
+    public static class TableEntityExtensions
+    {
+        public static TableEntity ToTableEntity<T>(this T item, string partitionKey, string rowKey)
+            where T : class, new()
+        {
+            Type type = typeof(T);
+            var entity = new TableEntity(partitionKey, rowKey);
+            foreach (var property in type.GetProperties())
+            {
+                if (property.CanRead && property.CanWrite)
+                {
+                    Type propertyType = property.PropertyType;
+                    if (propertyType.IsEnum)
+                    {
+                        entity.Add(property.Name, propertyType.GetEnumName(property.GetValue(item)));
+                    }
+                    entity.Add(property.Name, property.GetValue(item));
+                }
+            }
+            return entity;
+        }
+
+        public static T ToObject<T>(this TableEntity entity)
+        {
+            Type type = typeof(T);
+            var result = Activator.CreateInstance<T>();
+            foreach (var property in type.GetProperties())
+            {
+                if (property.CanRead && property.CanWrite)
+                {
+                    if (entity.TryGetValue(property.Name, out var text))
+                    {
+                        Type propertyType = property.PropertyType;
+                        if (propertyType.IsEnum)
+                        {
+                            property.SetValue(entity, Enum.Parse(propertyType, text.ToString()));
+                            continue;
+                        }
+                        property.SetValue(entity, text);
+                    }
+                }
+            }
+            return result;
         }
     }
 }
