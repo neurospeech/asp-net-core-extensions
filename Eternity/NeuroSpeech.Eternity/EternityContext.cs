@@ -101,7 +101,7 @@ namespace NeuroSpeech.Eternity
         private async Task RunWorkflowAsync(WorkflowQueueItem queueItem)
         {
             var step = await storage.GetWorkflowAsync(queueItem.ID);
-            if (step.Status == ActivityStatus.Completed || step.Status == ActivityStatus.Failed)
+            if (step==null || step.Status == ActivityStatus.Completed || step.Status == ActivityStatus.Failed)
             {
                 await storage.RemoveQueueAsync(queueItem.QueueToken);
                 return;

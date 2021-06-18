@@ -2,9 +2,9 @@
 using Azure.Data.Tables;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Specialized;
-using Azure.Storage.Queues;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
@@ -15,21 +15,25 @@ namespace NeuroSpeech.Eternity
     public class EternityAzureStorage : IEternityStorage
     {
         private readonly TableServiceClient TableClient;
-        private readonly QueueClient QueueClient;
+        // private readonly QueueClient QueueClient;
         private readonly TableClient Activities;
         private readonly TableClient Workflows;
+        private readonly TableClient ActivityQueue;
         private readonly BlobContainerClient Locks;
+
+        
 
         public EternityAzureStorage(string prefix, string connectionString)
         {
             this.TableClient = new TableServiceClient(connectionString);
-            this.QueueClient = new QueueServiceClient(connectionString).GetQueueClient($"{prefix}Workflows".ToLower());
+            // this.QueueClient = new QueueServiceClient(connectionString).GetQueueClient($"{prefix}Workflows".ToLower());
             var storageClient = new BlobServiceClient(connectionString);
             this.Activities = TableClient.GetTableClient($"{prefix}Activities".ToLower());
             this.Workflows = TableClient.GetTableClient($"{prefix}Workflows".ToLower());
+            this.ActivityQueue = TableClient.GetTableClient($"{prefix}Queue".ToLower());
             this.Locks = storageClient.GetBlobContainerClient($"{prefix}Locks".ToLower());
 
-            QueueClient.CreateIfNotExists();
+            // QueueClient.CreateIfNotExists();
             try
             {
                 Activities.CreateIfNotExists();
@@ -39,6 +43,7 @@ namespace NeuroSpeech.Eternity
                 Workflows.CreateIfNotExists();
             }
             catch { }
+            try { ActivityQueue.CreateIfNotExists(); } catch { }
             try
             {
                 Locks.CreateIfNotExists();
@@ -54,6 +59,10 @@ namespace NeuroSpeech.Eternity
 
                     var lockName = $"{id}-{sequenceId}.lock";
                     var b = Locks.GetBlobClient(lockName);
+                    if(!(await b.ExistsAsync()))
+                    {
+                        await b.UploadAsync(new MemoryStream(new byte[] { 1, 2, 3 }));
+                    }
                     var bc = b.GetBlobLeaseClient();
                     var r = await bc.AcquireAsync(BlobLeaseClient.InfiniteLeaseDuration);
                     return new EternityBlobLock
@@ -101,18 +110,56 @@ namespace NeuroSpeech.Eternity
 
         public async Task<WorkflowQueueItem[]> GetScheduledActivitiesAsync()
         {
-            var messages = await QueueClient.ReceiveMessagesAsync(32, TimeSpan.FromDays(1));
-            var data = messages.Value;
-            var items = new WorkflowQueueItem[data.Length];
-            for (int i = 0; i < items.Length; i++)
+            var now = DateTimeOffset.UtcNow;
+            var nowTicks = now.UtcTicks;
+
+            var locked = now.AddSeconds(60).UtcTicks;
+
+            var list = new List<TableEntity>();
+            await foreach(var item in ActivityQueue.QueryAsync<TableEntity>())
             {
-                var item = data[i];
-                items[i] = new WorkflowQueueItem { 
-                    ID = item.Body.ToString(),
-                    QueueToken = $"{item.MessageId},{item.PopReceipt}"
-                };
+                var eta = item.GetDateTimeOffset("ETA").Value.UtcTicks;
+                if(eta > nowTicks)
+                {
+                    break;
+                }
+                var entityLocked = item.GetInt64("Locked").GetValueOrDefault();
+                if (entityLocked != 0 && entityLocked < locked)
+                {
+                    continue;
+                }
+                item["Locked"] = locked;
+                try
+                {
+                    await ActivityQueue.UpdateEntityAsync(item, item.ETag);
+                    list.Add(item);
+                    if (list.Count == 32)
+                        break;
+                }
+                catch (RequestFailedException re)
+                {
+                    if (re.Status == 419)
+                        continue;
+                    throw;
+                }
             }
-            return items;
+            return list.Select(x => new WorkflowQueueItem {
+                ID = x.GetString("Message"),
+                QueueToken = $"{x.PartitionKey},{x.RowKey},{x.ETag}"
+            }).ToArray();
+            //var messages = await QueueClient.ReceiveMessagesAsync(32, TimeSpan.FromDays(1));
+            //var data = messages.Value;
+            //var items = new WorkflowQueueItem[data.Length];
+            //for (int i = 0; i < items.Length; i++)
+            //{
+            //    var item = data[i];
+            //    items[i] = new WorkflowQueueItem { 
+            //        ID = item.Body.ToString(),
+            //        QueueToken = $"{item.MessageId},{item.PopReceipt}"
+            //    };
+            //}
+            //return items;
+
         }
 
         public async Task<ActivityStep> GetStatusAsync(ActivityStep key)
@@ -136,35 +183,7 @@ namespace NeuroSpeech.Eternity
         public async Task<ActivityStep> InsertActivityAsync(ActivityStep key)
         {
             // generate new id...
-            long id = 1;
-            while (true)
-            {
-                try
-                {
-                    var en = Activities.QueryAsync<TableEntity>(x => x.PartitionKey == key.ID && x.RowKey == "ID").GetAsyncEnumerator();
-                    if (!await en.MoveNextAsync())
-                    {
-                        await Activities.AddEntityAsync<TableEntity>(new TableEntity(key.ID, "ID") {
-                            { "SequenceID", 1 }
-                        });
-                    }
-                    var item = en.Current;
-                    id = item.GetInt64("SequenceID").GetValueOrDefault() + 1;
-                    item["SequenceID"] = id;
-
-                    await Activities.UpdateEntityAsync(item, item.ETag, TableUpdateMode.Replace);
-                    break;
-                }
-                catch (RequestFailedException ex)
-                {
-                    if(ex.Status == 412)
-                    {
-                        continue;
-                    }
-                    throw;
-                }
-            }
-
+            long id = await Activities.NewSequenceIDAsync(key.ID, "ID");
             key.SequenceID = id;
             await Activities.UpsertEntityAsync(key.ToTableEntity(key.ID, key.KeyHash));
 
@@ -176,6 +195,7 @@ namespace NeuroSpeech.Eternity
                 {
                     await Activities.UpsertEntityAsync(new TableEntity(key.ID, name)
                     {
+                        { "Key", key.Key },
                         { "KeyHash", key.KeyHash }                         
                     }, TableUpdateMode.Replace);
                 }
@@ -192,9 +212,31 @@ namespace NeuroSpeech.Eternity
 
         public async Task<string> QueueWorkflowAsync(string id, DateTimeOffset after, string existing = null)
         {
-            var ts = after - DateTimeOffset.UtcNow;
-            var r = await QueueClient.SendMessageAsync(id, ts, ts.Add(TimeSpan.FromDays(10)));
-            return $"{r.Value.MessageId},{r.Value.PopReceipt}";
+            if (existing != null)
+            {
+                await RemoveQueueMessageAsync(existing);
+            }
+            var utc = after.UtcDateTime;
+            var day = utc.Date.Ticks.ToStringWithZeros();
+            var time = utc.TimeOfDay.Ticks.ToStringWithZeros();
+            for (long sid = DateTime.UtcNow.Ticks; sid <= long.MaxValue; sid++)
+            {
+                try
+                {
+                    var key = $"{time}-{sid.ToStringWithZeros()}";
+                    var r = await ActivityQueue.AddEntityAsync(new TableEntity(day, key) {
+                        { "Message", id },
+                        { "ETA", after }
+                    });
+                    return $"{day},{key},{r.Headers.ETag}";
+                }
+                catch (RequestFailedException ex)
+                {
+                    if (ex.Status == 409)
+                        continue;
+                }
+            }
+            throw new UnauthorizedAccessException();
         }
 
         public Task RemoveQueueAsync(params string[] tokens)
@@ -204,13 +246,11 @@ namespace NeuroSpeech.Eternity
 
         private async Task RemoveQueueMessageAsync(string id)
         {
-            try {
-                var tokens = id.Split(',');
-                await QueueClient.DeleteMessageAsync(tokens[0], tokens[1]);
-            } catch (Exception ex)
-            {
-
-            }
+            var tokens = id.Split(',');
+            var pk = tokens[0];
+            var rk = tokens[1];
+            var etag = tokens[2];
+            await ActivityQueue.DeleteEntityAsync(pk, rk, new ETag(etag));
         }
 
         public Task UpdateAsync(ActivityStep key)
@@ -239,6 +279,7 @@ namespace NeuroSpeech.Eternity
                     if (propertyType.IsEnum)
                     {
                         entity.Add(property.Name, propertyType.GetEnumName(property.GetValue(item)));
+                        continue;
                     }
                     entity.Add(property.Name, property.GetValue(item));
                 }
@@ -259,10 +300,10 @@ namespace NeuroSpeech.Eternity
                         Type propertyType = property.PropertyType;
                         if (propertyType.IsEnum)
                         {
-                            property.SetValue(entity, Enum.Parse(propertyType, text.ToString()));
+                            property.SetValue(result, Enum.Parse(propertyType, text.ToString()));
                             continue;
                         }
-                        property.SetValue(entity, text);
+                        property.SetValue(result, text);
                     }
                 }
             }
