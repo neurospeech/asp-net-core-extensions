@@ -202,7 +202,7 @@ namespace NeuroSpeech.Eternity
             key.QueueToken = await storage.QueueWorkflowAsync(key.ID, key.ETA, key.QueueToken);
         }
 
-        internal async Task<EventResult> WaitForExternalEventsAsync(IWorkflow workflow, string id, string[] names, DateTimeOffset eta)
+        internal async Task<(string name, string value)> WaitForExternalEventsAsync(IWorkflow workflow, string id, string[] names, DateTimeOffset eta)
         {
             var key = ActivityStep.Event(id, names, eta, workflow.CurrentUtc);
 
@@ -215,7 +215,8 @@ namespace NeuroSpeech.Eternity
                 {
                     case ActivityStatus.Completed:
                         workflow.SetCurrentTime(status.LastUpdated);
-                        return status.AsResult<EventResult>(options);
+                        var er = status.AsResult<EventResult>(options);
+                        return (er.EventName, er.Value);
                     case ActivityStatus.Failed:
                         workflow.SetCurrentTime(status.LastUpdated);
                         throw new ActivityFailedException(status.Error);
@@ -240,7 +241,7 @@ namespace NeuroSpeech.Eternity
                     status.Status = ActivityStatus.Completed;
                     status.LastUpdated = clock.UtcNow;
                     await storage.UpdateAsync(status);
-                    return timedout;
+                    return (null, null);
                 }
             }
         }

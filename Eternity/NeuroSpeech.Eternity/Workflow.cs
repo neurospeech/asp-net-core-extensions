@@ -126,7 +126,7 @@ namespace NeuroSpeech.Eternity
             this.CurrentUtc = start;
         }
 
-        public Task<EventResult> WaitForExternalEventsAsync(TimeSpan maxWait,params string[] names)
+        public Task<(string name, string value)> WaitForExternalEventsAsync(TimeSpan maxWait,params string[] names)
         {
             if(maxWait.TotalMilliseconds <= 0)
             {

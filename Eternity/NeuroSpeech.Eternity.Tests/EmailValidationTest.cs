@@ -21,11 +21,11 @@ namespace NeuroSpeech.Eternity.Tests
             await SendEmailAsync(input, code);
             for (int i = 0; i < 3; i++)
             {
-                var result = await WaitForExternalEventsAsync(maxWait, Resend, Verify);
-                switch(result.EventName)
+                var (name, value) = await WaitForExternalEventsAsync(maxWait, Resend, Verify);
+                switch(name)
                 {
                     case Verify:
-                        if(result.Value == code)
+                        if(value == code)
                         {
                             return "Verified";
                         }
