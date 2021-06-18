@@ -23,16 +23,26 @@ namespace NeuroSpeech.Eternity
         public EternityAzureStorage(string prefix, string connectionString)
         {
             this.TableClient = new TableServiceClient(connectionString);
-            this.QueueClient = new QueueServiceClient(connectionString).GetQueueClient($"{prefix}Workflows");
+            this.QueueClient = new QueueServiceClient(connectionString).GetQueueClient($"{prefix}Workflows".ToLower());
             var storageClient = new BlobServiceClient(connectionString);
-            this.Activities = TableClient.GetTableClient($"{prefix}Activities");
-            this.Workflows = TableClient.GetTableClient($"{prefix}Workflows");
-            this.Locks = storageClient.GetBlobContainerClient($"{prefix}Locks");
+            this.Activities = TableClient.GetTableClient($"{prefix}Activities".ToLower());
+            this.Workflows = TableClient.GetTableClient($"{prefix}Workflows".ToLower());
+            this.Locks = storageClient.GetBlobContainerClient($"{prefix}Locks".ToLower());
 
             QueueClient.CreateIfNotExists();
-            Activities.CreateIfNotExists();
-            Workflows.CreateIfNotExists();
-            Locks.CreateIfNotExists();
+            try
+            {
+                Activities.CreateIfNotExists();
+            }
+            catch { }
+            try {
+                Workflows.CreateIfNotExists();
+            }
+            catch { }
+            try
+            {
+                Locks.CreateIfNotExists();
+            } catch { }
         }
 
         public async Task<IEternityLock> AcquireLockAsync(string id, long sequenceId)

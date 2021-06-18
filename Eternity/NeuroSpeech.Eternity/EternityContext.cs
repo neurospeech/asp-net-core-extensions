@@ -13,6 +13,11 @@ using System.Threading.Tasks;
 namespace NeuroSpeech.Eternity
 {
 
+    public class EternityClock : IEternityClock
+    {
+        public DateTimeOffset UtcNow => DateTimeOffset.UtcNow;
+    }
+
     public class EternityContext
     {
         private readonly IEternityStorage storage;
