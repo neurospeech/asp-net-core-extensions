@@ -55,6 +55,13 @@ namespace NeuroSpeech.Eternity
         /// <param name="eventName"></param>
         /// <returns></returns>
         Task<ActivityStep> GetEventAsync(string id, string eventName);
+        
+        /// <summary>
+        /// Delete history of the specified workflow
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        Task DeleteHistoryAsync(string id);
     }
 
 }

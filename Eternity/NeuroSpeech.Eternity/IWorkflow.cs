@@ -18,5 +18,7 @@ namespace NeuroSpeech.Eternity
         IList<string> QueueItemList { get; }
 
         bool  IsActivityRunning { get; set; }
+
+        bool DeleteHistory { get; }
     }
 }

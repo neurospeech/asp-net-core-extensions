@@ -99,6 +99,11 @@ namespace NeuroSpeech.Eternity
         /// </summary>
         public string ID { get; private set; }
 
+        /// <summary>
+        /// Set this to true to delete entire history of replay after successful or failed execution
+        /// </summary>
+        public bool DeleteHistory { get; set;  }
+
 
         public EternityContext Context { get; private set; }
 

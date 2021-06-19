@@ -135,6 +135,16 @@ namespace NeuroSpeech.Eternity
             }
             await storage.UpdateAsync(step);
             await storage.RemoveQueueAsync(instance.QueueItemList.ToArray());
+            if (instance.DeleteHistory)
+            {
+                try
+                {
+                    await storage.DeleteHistoryAsync(step.ID);
+                }catch (Exception ex)
+                {
+                    // ignore error...
+                }
+            }
         }
 
         internal async Task Delay(IWorkflow workflow, string id, DateTimeOffset timeout)

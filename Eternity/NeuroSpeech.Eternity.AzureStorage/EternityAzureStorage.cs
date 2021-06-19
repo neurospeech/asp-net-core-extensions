@@ -205,7 +205,7 @@ namespace NeuroSpeech.Eternity
         {
             if (existing != null)
             {
-                await RemoveQueueMessageAsync(existing);
+                await RemoveQueueAsync(existing);
             }
             var utc = after.UtcDateTime;
             var day = utc.Date.Ticks.ToStringWithZeros();
@@ -232,15 +232,10 @@ namespace NeuroSpeech.Eternity
 
         public Task RemoveQueueAsync(params string[] tokens)
         {
-            return Task.WhenAll(tokens.Select(RemoveQueueMessageAsync));
-        }
-
-        private async Task RemoveQueueMessageAsync(string id)
-        {
-            var tokens = id.Split(',');
-            var pk = tokens[0];
-            var rk = tokens[1];
-            await ActivityQueue.DeleteEntityAsync(pk, rk, ETag.All);
+            return ActivityQueue.DeleteAllAsync(tokens.Select(x => {
+                var tokens = x.Split(',');
+                return (tokens[0], tokens[1]);
+            }));
         }
 
         public Task UpdateAsync(ActivityStep key)
@@ -251,6 +246,11 @@ namespace NeuroSpeech.Eternity
         public Task UpdateAsync(WorkflowStep key)
         {
             return Workflows.UpsertEntityAsync(key.ToTableEntity(key.ID, "1"), TableUpdateMode.Replace);
+        }
+
+        public async Task DeleteHistoryAsync(string id)
+        {
+            await Activities.DeleteAllAsync(id);
         }
     }
 }

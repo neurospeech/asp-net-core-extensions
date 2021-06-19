@@ -55,6 +55,13 @@ namespace NeuroSpeech.Eternity.Mocks
             }
         }
 
+        public Task DeleteHistoryAsync(string id)
+        {
+            list.RemoveAll(x => x.ID == id);
+            queue.RemoveAll(x => x.ID == id);
+            return Task.CompletedTask;
+        }
+
         public Task FreeLockAsync(IEternityLock executionLock)
         {
             locks.TryRemove((executionLock as MockLock).id, out var n);
