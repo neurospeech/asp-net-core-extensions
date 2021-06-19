@@ -24,6 +24,7 @@ namespace NeuroSpeech.Eternity
         private readonly IServiceProvider services;
         private readonly IEternityClock clock;
         private readonly System.Text.Json.JsonSerializerOptions options;
+        private CancellationTokenSource? waiter;
         
 
         public EternityContext(
@@ -44,6 +45,15 @@ namespace NeuroSpeech.Eternity
 
         }
 
+        private void Trigger()
+        {
+            var w = waiter;
+            if (w != null && !w.IsCancellationRequested)
+            {
+                w.Cancel();
+            }
+        }
+
         internal async Task<string> CreateAsync<TInput, TOutput>(Type type, TInput input, string id = null)
         {
             id ??= Guid.NewGuid().ToString("N");
@@ -51,6 +61,7 @@ namespace NeuroSpeech.Eternity
             var key = WorkflowStep.Workflow(id, type, input, utcNow, utcNow, options);
             key = await storage.InsertWorkflowAsync(key);
             await storage.QueueWorkflowAsync(key.ID, utcNow);
+            Trigger();
             return id;
         }
 
@@ -61,6 +72,7 @@ namespace NeuroSpeech.Eternity
             var key = WorkflowStep.Workflow(id, type, input, at, utcNow, options);
             key = await storage.InsertWorkflowAsync(key);
             await storage.QueueWorkflowAsync(key.ID, at);
+            Trigger();
             return id;
         }
 
@@ -88,7 +100,15 @@ namespace NeuroSpeech.Eternity
             while(!cancellationToken.IsCancellationRequested)
             {
                 await ProcessMessagesOnceAsync();
-                await Task.Delay(15000);
+                try
+                {
+                    var c = new CancellationTokenSource();
+                    waiter = c;
+                    await Task.Delay(15000, c.Token);
+                } catch (TaskCanceledException)
+                {
+
+                }
             }
         }
 
@@ -217,6 +237,7 @@ namespace NeuroSpeech.Eternity
             await storage.UpdateAsync(key);
             // we need to change queue token here...
             key.QueueToken = await storage.QueueWorkflowAsync(key.ID, key.ETA, key.QueueToken);
+            Trigger();
         }
 
         internal async Task<(string name, string value)> WaitForExternalEventsAsync(IWorkflow workflow, string id, string[] names, DateTimeOffset eta)
