@@ -1,5 +1,5 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using NeuroSpeech.Eternity.Tests.Mocks;
+using NeuroSpeech.Eternity.Mocks;
 using System;
 using System.Collections.Generic;
 using System.Text;

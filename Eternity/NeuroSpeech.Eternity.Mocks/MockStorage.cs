@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace NeuroSpeech.Eternity.Tests.Mocks
+namespace NeuroSpeech.Eternity.Mocks
 {
 
     public class MockLock: IEternityLock {

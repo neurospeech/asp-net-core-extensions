@@ -89,15 +89,27 @@ namespace NeuroSpeech.Eternity
             return context.GetStatusAsync<TOutput>(id);
         }
 
+        /// <summary>
+        /// Returns if the control is inside an activity
+        /// </summary>
         public bool IsActivityRunning { get; internal set; }
 
+        /// <summary>
+        /// Workflow ID associated with current execution
+        /// </summary>
         public string ID { get; private set; }
+
 
         public EternityContext Context { get; private set; }
 
+        /// <summary>
+        /// Time associated with current execution, it will not be same as current date time when it is replayed
+        /// </summary>
         public DateTimeOffset CurrentUtc { get; private set; }
 
         Type IWorkflow.InputType => typeof(TInput);
+
+        bool IWorkflow.IsActivityRunning { get => IsActivityRunning; set => IsActivityRunning = value; }
 
         IList<string> IWorkflow.QueueItemList { get; } = new List<string>();
 
@@ -110,6 +122,12 @@ namespace NeuroSpeech.Eternity
             this.CurrentUtc = start;
         }
 
+        /// <summary>
+        /// Wait for an external event upto given timespan, timespan cannot be infinite, and cannot be zero or negative
+        /// </summary>
+        /// <param name="maxWait"></param>
+        /// <param name="names">Names of expected events</param>
+        /// <returns></returns>
         public Task<(string name, string value)> WaitForExternalEventsAsync(TimeSpan maxWait,params string[] names)
         {
             if(maxWait.TotalMilliseconds <= 0)
@@ -123,20 +141,26 @@ namespace NeuroSpeech.Eternity
             return Context.WaitForExternalEventsAsync(this, ID, names, CurrentUtc.Add(maxWait));
         }
 
+        /// <summary>
+        /// Pause the execution for given time span, it cannot be zero or negative and it cannot be infinite
+        /// </summary>
+        /// <param name="timeout"></param>
+        /// <returns></returns>
         public Task Delay(TimeSpan timeout)
         {
             if (timeout.TotalMilliseconds <= 0)
             {
                 throw new ArgumentException($"{nameof(timeout)} cannot be in the past");
             }
-            return Context.Delay(this, typeof(TWorkflow), ID, CurrentUtc.Add(timeout));
+            return Context.Delay(this, ID, CurrentUtc.Add(timeout));
         }
+
         [EditorBrowsable(EditorBrowsableState.Never)]
         public Task<T> ScheduleResultAsync<T>(string method, params object[] items)
         {
             var fx = typeof(TWorkflow).GetMethod(method);
             var unique = fx.GetCustomAttribute<ActivityAttribute>();
-            return Context.ScheduleAsync<TWorkflow, T>(this, unique.UniqueParameters, ID, CurrentUtc, fx, items);
+            return Context.ScheduleAsync<T>(this, unique.UniqueParameters, ID, CurrentUtc, fx, items);
         }
 
         [EditorBrowsable(EditorBrowsableState.Never)]
@@ -144,7 +168,7 @@ namespace NeuroSpeech.Eternity
         {
             var fx = typeof(TWorkflow).GetMethod(method);
             var unique = fx.GetCustomAttribute<ActivityAttribute>();
-            await Context.ScheduleAsync<TWorkflow, object>(this, unique.UniqueParameters, ID, CurrentUtc, fx, items);
+            await Context.ScheduleAsync<object>(this, unique.UniqueParameters, ID, CurrentUtc, fx, items);
         }
 
         [EditorBrowsable(EditorBrowsableState.Never)]
@@ -156,7 +180,7 @@ namespace NeuroSpeech.Eternity
             }
             var fx = typeof(TWorkflow).GetMethod(method);
             var unique = fx.GetCustomAttribute<ActivityAttribute>();
-            return Context.ScheduleAsync<TWorkflow, T>(this, unique.UniqueParameters, ID, at, fx, items);
+            return Context.ScheduleAsync<T>(this, unique.UniqueParameters, ID, at, fx, items);
         }
 
         [EditorBrowsable(EditorBrowsableState.Never)]
@@ -168,7 +192,7 @@ namespace NeuroSpeech.Eternity
             }
             var fx = typeof(TWorkflow).GetMethod(method);
             var unique = fx.GetCustomAttribute<ActivityAttribute>();
-            await Context.ScheduleAsync<TWorkflow, object>(this, unique.UniqueParameters, ID, at, fx, items);
+            await Context.ScheduleAsync<object>(this, unique.UniqueParameters, ID, at, fx, items);
         }
 
         [EditorBrowsable(EditorBrowsableState.Never)]
@@ -180,7 +204,7 @@ namespace NeuroSpeech.Eternity
             }
             var fx = typeof(TWorkflow).GetMethod(method);
             var unique = fx.GetCustomAttribute<ActivityAttribute>();
-            return Context.ScheduleAsync<TWorkflow, T>(this, unique.UniqueParameters, ID, CurrentUtc.Add(at), fx, items);
+            return Context.ScheduleAsync<T>(this, unique.UniqueParameters, ID, CurrentUtc.Add(at), fx, items);
         }
 
         [EditorBrowsable(EditorBrowsableState.Never)]
@@ -192,7 +216,7 @@ namespace NeuroSpeech.Eternity
             }
             var fx = typeof(TWorkflow).GetMethod(method);
             var unique = fx.GetCustomAttribute<ActivityAttribute>();
-            await Context.ScheduleAsync<TWorkflow, object>(this, unique.UniqueParameters, ID, CurrentUtc.Add(at), fx, items);
+            await Context.ScheduleAsync<object>(this, unique.UniqueParameters, ID, CurrentUtc.Add(at), fx, items);
         }
 
 

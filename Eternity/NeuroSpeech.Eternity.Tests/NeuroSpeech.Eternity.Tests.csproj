@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\NeuroSpeech.Eternity\NeuroSpeech.Eternity.csproj" />
+    <ProjectReference Include="..\NeuroSpeech.Eternity.Mocks\NeuroSpeech.Eternity.Mocks.csproj" />
   </ItemGroup>
 
 </Project>

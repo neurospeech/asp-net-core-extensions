@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace NeuroSpeech.Eternity.Tests.Mocks
+namespace NeuroSpeech.Eternity.Mocks
 {
     public class MockEngine
     {

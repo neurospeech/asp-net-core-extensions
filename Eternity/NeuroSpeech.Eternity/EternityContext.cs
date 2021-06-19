@@ -137,7 +137,7 @@ namespace NeuroSpeech.Eternity
             await storage.RemoveQueueAsync(instance.QueueItemList.ToArray());
         }
 
-        internal async Task Delay(IWorkflow workflow, Type type, string id, DateTimeOffset timeout)
+        internal async Task Delay(IWorkflow workflow, string id, DateTimeOffset timeout)
         {
             
             var key = ActivityStep.Delay(id, timeout, workflow.CurrentUtc);
@@ -174,6 +174,7 @@ namespace NeuroSpeech.Eternity
             status.Status = ActivityStatus.Completed;
             status.Result = "null";
             await storage.UpdateAsync(status);
+            await storage.RemoveQueueAsync(status.QueueToken);
         }
 
         /// <summary>
@@ -277,25 +278,12 @@ namespace NeuroSpeech.Eternity
         }
 
         [EditorBrowsable(EditorBrowsableState.Never)]
-        internal Task<TActivityOutput> ScheduleAsync<T, TActivityOutput>(IWorkflow workflow,
+        internal async Task<TActivityOutput> ScheduleAsync<TActivityOutput>(
+            IWorkflow workflow,
             bool uniqueParameters,
             string ID,
             DateTimeOffset after,
             MethodInfo method,
-            params object[] input)
-        {
-            return ScheduleAsync<TActivityOutput>(typeof(T), workflow, uniqueParameters, ID, after, method, input);
-        }
-
-
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        internal async Task<TActivityOutput> ScheduleAsync<TActivityOutput>(
-            Type type,
-            IWorkflow workflow,
-            bool uniqueParameters,
-            string ID, 
-            DateTimeOffset after, 
-            MethodInfo method, 
             params object[] input)
         {
 
@@ -311,7 +299,6 @@ namespace NeuroSpeech.Eternity
 
                 // has result...
                 var task = await GetActivityResultAsync(workflow, key);
-                var utcNow = clock.UtcNow;
 
                 switch (task.Status)
                 {
