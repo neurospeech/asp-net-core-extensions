@@ -36,11 +36,11 @@ public class SignupWorkflow : Workflow<SignupWorkflow, string, string>
         await SendEmailAsync(input, code);
         for (int i = 0; i < 3; i++)
         {
-            var result = await WaitForExternalEventsAsync(maxWait, Resend, Verify);
-            switch(result.EventName)
+            var (name, result) = await WaitForExternalEventsAsync(maxWait, Resend, Verify);
+            switch(name)
             {
                 case Verify:
-                    if(result.Value == code)
+                    if(result == code)
                     {
                         return "Verified";
                     }
