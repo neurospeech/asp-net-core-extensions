@@ -88,6 +88,7 @@ namespace NeuroSpeech.Eternity
             while(!cancellationToken.IsCancellationRequested)
             {
                 await ProcessMessagesOnceAsync();
+                await Task.Delay(15000);
             }
         }
 
@@ -246,6 +247,7 @@ namespace NeuroSpeech.Eternity
                     status.Status = ActivityStatus.Completed;
                     status.LastUpdated = clock.UtcNow;
                     await storage.UpdateAsync(status);
+                    await storage.RemoveQueueAsync(status.QueueToken);
                     return (null, null);
                 }
             }

@@ -80,10 +80,14 @@ namespace NeuroSpeech.Eternity
 
         public async Task FreeLockAsync(IEternityLock executionLock)
         {
-            var el = executionLock as EternityBlobLock;
-            var b = Locks.GetBlobClient(el.LockName);
-            var bc = b.GetBlobLeaseClient(el.LeaseID);
-            await bc.ReleaseAsync();
+            try
+            {
+                var el = executionLock as EternityBlobLock;
+                var b = Locks.GetBlobClient(el.LockName);
+                var bc = b.GetBlobLeaseClient(el.LeaseID);
+                await bc.ReleaseAsync();
+                await b.DeleteIfExistsAsync();
+            }catch (Exception ex) { }
         }
 
         public async Task<ActivityStep> GetEventAsync(string id, string eventName)
@@ -147,19 +151,6 @@ namespace NeuroSpeech.Eternity
                 ID = x.GetString("Message"),
                 QueueToken = $"{x.PartitionKey},{x.RowKey},{x.ETag}"
             }).ToArray();
-            //var messages = await QueueClient.ReceiveMessagesAsync(32, TimeSpan.FromDays(1));
-            //var data = messages.Value;
-            //var items = new WorkflowQueueItem[data.Length];
-            //for (int i = 0; i < items.Length; i++)
-            //{
-            //    var item = data[i];
-            //    items[i] = new WorkflowQueueItem { 
-            //        ID = item.Body.ToString(),
-            //        QueueToken = $"{item.MessageId},{item.PopReceipt}"
-            //    };
-            //}
-            //return items;
-
         }
 
         public async Task<ActivityStep> GetStatusAsync(ActivityStep key)
@@ -228,7 +219,7 @@ namespace NeuroSpeech.Eternity
                         { "Message", id },
                         { "ETA", after }
                     });
-                    return $"{day},{key},{r.Headers.ETag}";
+                    return $"{day},{key},{r.Headers.ETag.GetValueOrDefault()}";
                 }
                 catch (RequestFailedException ex)
                 {
@@ -249,8 +240,7 @@ namespace NeuroSpeech.Eternity
             var tokens = id.Split(',');
             var pk = tokens[0];
             var rk = tokens[1];
-            var etag = tokens[2];
-            await ActivityQueue.DeleteEntityAsync(pk, rk, new ETag(etag));
+            await ActivityQueue.DeleteEntityAsync(pk, rk, ETag.All);
         }
 
         public Task UpdateAsync(ActivityStep key)
@@ -261,53 +251,6 @@ namespace NeuroSpeech.Eternity
         public Task UpdateAsync(WorkflowStep key)
         {
             return Workflows.UpsertEntityAsync(key.ToTableEntity(key.ID, "1"), TableUpdateMode.Replace);
-        }
-    }
-
-    public static class TableEntityExtensions
-    {
-        public static TableEntity ToTableEntity<T>(this T item, string partitionKey, string rowKey)
-            where T : class, new()
-        {
-            Type type = typeof(T);
-            var entity = new TableEntity(partitionKey, rowKey);
-            foreach (var property in type.GetProperties())
-            {
-                if (property.CanRead && property.CanWrite)
-                {
-                    Type propertyType = property.PropertyType;
-                    if (propertyType.IsEnum)
-                    {
-                        entity.Add(property.Name, propertyType.GetEnumName(property.GetValue(item)));
-                        continue;
-                    }
-                    entity.Add(property.Name, property.GetValue(item));
-                }
-            }
-            return entity;
-        }
-
-        public static T ToObject<T>(this TableEntity entity)
-        {
-            Type type = typeof(T);
-            var result = Activator.CreateInstance<T>();
-            foreach (var property in type.GetProperties())
-            {
-                if (property.CanRead && property.CanWrite)
-                {
-                    if (entity.TryGetValue(property.Name, out var text))
-                    {
-                        Type propertyType = property.PropertyType;
-                        if (propertyType.IsEnum)
-                        {
-                            property.SetValue(result, Enum.Parse(propertyType, text.ToString()));
-                            continue;
-                        }
-                        property.SetValue(result, text);
-                    }
-                }
-            }
-            return result;
         }
     }
 }
