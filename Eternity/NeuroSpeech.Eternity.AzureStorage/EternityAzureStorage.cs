@@ -114,6 +114,10 @@ namespace NeuroSpeech.Eternity
 
         public async Task<WorkflowQueueItem[]> GetScheduledActivitiesAsync()
         {
+            // It is not good to submit multiple queue locking transaction in bulk
+            // we want to get at least one message to process queue, chances of failing single message
+            // is far less than chances of failing all messages at once.
+
             var now = DateTimeOffset.UtcNow;
             var nowTicks = now.UtcTicks;
 
@@ -176,7 +180,8 @@ namespace NeuroSpeech.Eternity
             // generate new id...
             long id = await Activities.NewSequenceIDAsync(key.ID, "ID");
             key.SequenceID = id;
-            await Activities.UpsertEntityAsync(key.ToTableEntity(key.ID, key.KeyHash));
+            var actions = new List<TableTransactionAction>();
+            actions.Add(new TableTransactionAction(TableTransactionActionType.UpsertReplace, key.ToTableEntity(key.ID, key.KeyHash), ETag.All));
 
             // last active event waiting must be added with eventName
             if(key.ActivityType == ActivityType.Event)
@@ -184,14 +189,14 @@ namespace NeuroSpeech.Eternity
                 string[] eventNames = JsonSerializer.Deserialize<string[]>(key.Parameters);
                 foreach(var name in eventNames)
                 {
-                    await Activities.UpsertEntityAsync(new TableEntity(key.ID, name)
+                    actions.Add(new TableTransactionAction(TableTransactionActionType.UpsertReplace, new TableEntity(key.ID, name)
                     {
                         { "Key", key.Key },
                         { "KeyHash", key.KeyHash }                         
-                    }, TableUpdateMode.Replace);
+                    }, ETag.All));
                 }
             }
-
+            await Activities.SubmitTransactionAsync(actions);
             return key;
         }
 
