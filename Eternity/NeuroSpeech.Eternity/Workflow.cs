@@ -8,24 +8,6 @@ using System.Threading.Tasks;
 
 namespace NeuroSpeech.Eternity
 {
-    public class EventResult
-    {
-        public string EventName { get; set; }
-        public string Value { get; set; }
-    }
-
-    public class WorkflowStatus<T>
-    {
-        public ActivityStatus Status { get; set; }
-
-        public T Result { get; set; }
-
-        public string Error { get; set; }
-
-        public DateTimeOffset DateCreated { get; set; }
-
-        public DateTimeOffset LastUpdate { get; set; }
-    }
 
     /// <summary>
     /// Base class for Eternity Workflow
@@ -106,6 +88,8 @@ namespace NeuroSpeech.Eternity
         {
             return context.GetStatusAsync<TOutput>(id);
         }
+
+        public bool IsActivityRunning { get; internal set; }
 
         public string ID { get; private set; }
 

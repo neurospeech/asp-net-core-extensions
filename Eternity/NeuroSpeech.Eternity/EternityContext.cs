@@ -210,6 +210,11 @@ namespace NeuroSpeech.Eternity
 
         internal async Task<(string name, string value)> WaitForExternalEventsAsync(IWorkflow workflow, string id, string[] names, DateTimeOffset eta)
         {
+            if (workflow.IsActivityRunning)
+            {
+                throw new InvalidOperationException($"Cannot wait for an event inside an activity");
+            }
+
             var key = ActivityStep.Event(id, names, eta, workflow.CurrentUtc);
 
             var status = await GetActivityResultAsync(workflow, key);
@@ -294,6 +299,11 @@ namespace NeuroSpeech.Eternity
             params object[] input)
         {
 
+            if (workflow.IsActivityRunning)
+            {
+                throw new InvalidOperationException($"Cannot schedule an activity inside an activity");
+            }
+
             var key = ActivityStep.Activity(uniqueParameters, ID, method, input, after, workflow.CurrentUtc, options);
 
             while (true)
@@ -355,6 +365,7 @@ namespace NeuroSpeech.Eternity
 
                 try
                 {
+                    workflow.IsActivityRunning = true;
                     var method = type.GetMethod(key.Method);
 
                     var parameters = BuildParameters(method, key.Parameters, scope.ServiceProvider);
@@ -374,6 +385,9 @@ namespace NeuroSpeech.Eternity
                     key.LastUpdated = clock.UtcNow;
                     await storage.UpdateAsync(key);
                     throw new ActivityFailedException(ex.ToString());
+                } finally
+                {
+                    workflow.IsActivityRunning = false;
                 }
 
 
