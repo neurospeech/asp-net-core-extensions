@@ -377,3 +377,4 @@ We have created `NeuroSpeech.Eternity.Mocks` package which provides Mock engine 
 4. An event can only be raised if workflow is waiting for an event, unlike Durable Tasks. You can choose to fire an exception if workflow is not waiting for an event.
 5. You can wait for an event from days to months. You can easily create workflows for membership renewals etc.
 6. We have created Mock Storage, you can unit test your workflows spanning days/months easily against in memory storage.
+7. Storage engine interface is small, you can easily use it to create storage even on mobile devices. We will soon offer Sqlite storage.
