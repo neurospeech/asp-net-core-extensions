@@ -105,6 +105,17 @@ namespace NeuroSpeech.Eternity
             if (step==null || step.Status == ActivityStatus.Completed || step.Status == ActivityStatus.Failed)
             {
                 await storage.RemoveQueueAsync(queueItem.QueueToken);
+                if (instance.DeleteHistory)
+                {
+                    try
+                    {
+                        await storage.DeleteHistoryAsync(step.ID);
+                    }
+                    catch (Exception ex)
+                    {
+                        // ignore error...
+                    }
+                }
                 return;
             }
 
