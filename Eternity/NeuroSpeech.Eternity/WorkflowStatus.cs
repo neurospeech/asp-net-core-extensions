@@ -6,9 +6,9 @@ namespace NeuroSpeech.Eternity
     {
         public ActivityStatus Status { get; set; }
 
-        public T Result { get; set; }
+        public T? Result { get; set; }
 
-        public string Error { get; set; }
+        public string? Error { get; set; }
 
         public DateTimeOffset DateCreated { get; set; }
 

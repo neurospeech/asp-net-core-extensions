@@ -16,7 +16,7 @@ namespace NeuroSpeech.Eternity
         private static MethodInfo methodRunAsyncOfT = typeof(MethodHelper).GetMethod(nameof(RunAsyncOfT));
 
         public static object InvokeNotOverride(this MethodInfo methodInfo,
-            object targetObject, params object[] arguments)
+            object targetObject, params object?[] arguments)
         {
             var parameters = methodInfo.GetParameters();
 
@@ -31,7 +31,7 @@ namespace NeuroSpeech.Eternity
                     throw new Exception("Arguments cont doesn't match");
             }
 
-            Type returnType = null;
+            Type? returnType = null;
             if (methodInfo.ReturnType != typeof(void))
             {
                 returnType = methodInfo.ReturnType;
@@ -72,38 +72,38 @@ namespace NeuroSpeech.Eternity
             iLGenerator.Emit(OpCodes.Call, methodInfo);
             iLGenerator.Emit(OpCodes.Ret);
 
-            return dynamicMethod.Invoke(null, new object[] { targetObject, arguments });
+            return dynamicMethod.Invoke(null, new object?[] { targetObject, arguments });
         }
 
         public static async Task<string> RunAsyncOfT<T>(
             MethodInfo method, 
             object target, 
-            object[] parameters,
-            System.Text.Json.JsonSerializerOptions options = default)
+            object?[] parameters,
+            System.Text.Json.JsonSerializerOptions? options = default)
         {
-            var r = (await (method.InvokeNotOverride(target, parameters) as Task<T>));
+            var r = (await (method.InvokeNotOverride(target, parameters) as Task<T>)!);
             return JsonSerializer.Serialize(r, options);
         }
 
         public static async Task<string> RunAsync(
             this MethodInfo method, 
             object target, 
-            object[] parameters,
-            System.Text.Json.JsonSerializerOptions options = null)
+            object?[] parameters,
+            System.Text.Json.JsonSerializerOptions? options = null)
         {
             if (method.ReturnType.IsConstructedGenericType)
             {
                 var returnType = method.ReturnType.GenericTypeArguments[0];
 
-                return await (methodRunAsyncOfT.MakeGenericMethod(returnType).Invoke(target, new object[] { 
+                return await (methodRunAsyncOfT.MakeGenericMethod(returnType).Invoke(target, new object?[] { 
                     method,
                     target,
                     parameters,
                     options
-                }) as Task<string>);
+                }) as Task<string>)!;
             }
 
-            await (method.InvokeNotOverride(target, parameters) as Task);
+            await (method.InvokeNotOverride(target, parameters) as Task)!;
             return "null";
         }
 

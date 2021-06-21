@@ -54,39 +54,39 @@ namespace NeuroSpeech.Eternity
             }
         }
 
-        internal async Task<string> CreateAsync<TInput, TOutput>(Type type, TInput input, string id = null)
+        internal async Task<string> CreateAsync<TInput, TOutput>(Type type, TInput input, string? id = null)
         {
             id ??= Guid.NewGuid().ToString("N");
             var utcNow = clock.UtcNow;
-            var key = WorkflowStep.Workflow(id, type, input, utcNow, utcNow, options);
+            var key = WorkflowStep.Workflow(id, type, input!, utcNow, utcNow, options);
             key = await storage.InsertWorkflowAsync(key);
-            await storage.QueueWorkflowAsync(key.ID, utcNow);
+            await storage.QueueWorkflowAsync(key.ID!, utcNow);
             Trigger();
             return id;
         }
 
-        internal async Task<string> CreateAtAsync<TInput, TOutput>(Type type, TInput input, DateTimeOffset at, string id = null)
+        internal async Task<string> CreateAtAsync<TInput, TOutput>(Type type, TInput input, DateTimeOffset at, string? id = null)
         {
             id ??= Guid.NewGuid().ToString("N");
             var utcNow = at;
-            var key = WorkflowStep.Workflow(id, type, input, at, utcNow, options);
+            var key = WorkflowStep.Workflow(id, type, input!, at, utcNow, options);
             key = await storage.InsertWorkflowAsync(key);
-            await storage.QueueWorkflowAsync(key.ID, at);
+            await storage.QueueWorkflowAsync(key.ID!, at);
             Trigger();
             return id;
         }
 
-        internal async Task<WorkflowStatus<T>> GetStatusAsync<T>(string id)
+        internal async Task<WorkflowStatus<T?>> GetStatusAsync<T>(string id)
         {
             var wf = await storage.GetWorkflowAsync(id);
-            var status = new WorkflowStatus<T>();
+            var status = new WorkflowStatus<T?>();
             status.Status = wf.Status;
             status.DateCreated = wf.DateCreated;
             status.LastUpdate = wf.LastUpdated;
             switch (wf.Status)
             {
                 case ActivityStatus.Completed:
-                    status.Result = Deserialize<T>(wf.Result);
+                    status.Result = Deserialize<T?>(wf.Result);
                     break;
                 case ActivityStatus.Failed:
                     status.Error = wf.Error;
@@ -130,12 +130,12 @@ namespace NeuroSpeech.Eternity
 
             var workflowType = ClrHelper.Instance.GetDerived(Type.GetType(step.WorkflowType));
             // we need to begin...
-            var instance = GetWorkflowInstance(workflowType, step.ID, step.LastUpdated);
+            var instance = GetWorkflowInstance(workflowType, step.ID!, step.LastUpdated);
             instance.QueueItemList.Add(queueItem.QueueToken);
-            var input = JsonSerializer.Deserialize(step.Parameter, instance.InputType, options);
+            var input = JsonSerializer.Deserialize(step.Parameter!, instance.InputType, options);
             try
             {
-                var result = await instance.RunAsync(input);
+                var result = await instance.RunAsync(input!);
                 step.Result = JsonSerializer.Serialize(result, options);
                 step.LastUpdated = clock.UtcNow;
                 step.Status = ActivityStatus.Completed;
@@ -159,8 +159,8 @@ namespace NeuroSpeech.Eternity
             {
                 try
                 {
-                    await storage.DeleteHistoryAsync(step.ID);
-                }catch (Exception ex)
+                    await storage.DeleteHistoryAsync(step.ID!);
+                }catch (Exception)
                 {
                     // ignore error...
                 }
@@ -180,7 +180,7 @@ namespace NeuroSpeech.Eternity
                     return;
                 case ActivityStatus.Failed:
                     workflow.SetCurrentTime(status.LastUpdated);
-                    throw new ActivityFailedException(status.Error);
+                    throw new ActivityFailedException(status.Error!);
             }
 
             var utcNow = clock.UtcNow;
@@ -204,7 +204,8 @@ namespace NeuroSpeech.Eternity
             status.Status = ActivityStatus.Completed;
             status.Result = "null";
             await storage.UpdateAsync(status);
-            await storage.RemoveQueueAsync(status.QueueToken);
+            if(status.QueueToken != null)
+                await storage.RemoveQueueAsync(status.QueueToken);
         }
 
         /// <summary>
@@ -236,11 +237,11 @@ namespace NeuroSpeech.Eternity
             key.Status = ActivityStatus.Completed;
             await storage.UpdateAsync(key);
             // we need to change queue token here...
-            key.QueueToken = await storage.QueueWorkflowAsync(key.ID, key.ETA, key.QueueToken);
+            key.QueueToken = await storage.QueueWorkflowAsync(key.ID!, key.ETA, key.QueueToken);
             Trigger();
         }
 
-        internal async Task<(string name, string value)> WaitForExternalEventsAsync(IWorkflow workflow, string id, string[] names, DateTimeOffset eta)
+        internal async Task<(string? name, string? value)> WaitForExternalEventsAsync(IWorkflow workflow, string id, string[] names, DateTimeOffset eta)
         {
             if (workflow.IsActivityRunning)
             {
@@ -258,11 +259,11 @@ namespace NeuroSpeech.Eternity
                 {
                     case ActivityStatus.Completed:
                         workflow.SetCurrentTime(status.LastUpdated);
-                        var er = status.AsResult<EventResult>(options);
+                        var er = status.AsResult<EventResult>(options)!;
                         return (er.EventName, er.Value);
                     case ActivityStatus.Failed:
                         workflow.SetCurrentTime(status.LastUpdated);
-                        throw new ActivityFailedException(status.Error);
+                        throw new ActivityFailedException(status.Error!);
                 }
 
                 var diff = status.ETA - clock.UtcNow;
@@ -284,7 +285,8 @@ namespace NeuroSpeech.Eternity
                     status.Status = ActivityStatus.Completed;
                     status.LastUpdated = clock.UtcNow;
                     await storage.UpdateAsync(status);
-                    await storage.RemoveQueueAsync(status.QueueToken);
+                    if(status.QueueToken != null)
+                        await storage.RemoveQueueAsync(status.QueueToken);
                     return (null, null);
                 }
             }
@@ -297,15 +299,15 @@ namespace NeuroSpeech.Eternity
                 return r;
             }
             key = await storage.InsertActivityAsync(key);
-            var qi = await storage.QueueWorkflowAsync(key.ID, key.ETA);
+            var qi = await storage.QueueWorkflowAsync(key.ID!, key.ETA);
             key.QueueToken = qi;
             workflow.QueueItemList.Add(qi);
             return key;
         }
 
-        public TActivityOutput Deserialize<TActivityOutput>(string result)
+        public TActivityOutput? Deserialize<TActivityOutput>(string? result)
         {
-            return JsonSerializer.Deserialize<TActivityOutput>(result);
+            return JsonSerializer.Deserialize<TActivityOutput>(result!);
         }
 
         [EditorBrowsable(EditorBrowsableState.Never)]
@@ -335,12 +337,12 @@ namespace NeuroSpeech.Eternity
                 {
                     case ActivityStatus.Failed:
                         workflow.SetCurrentTime(task.LastUpdated);
-                        throw new ActivityFailedException(task.Error);
+                        throw new ActivityFailedException(task.Error!);
                     case ActivityStatus.Completed:
                         workflow.SetCurrentTime(task.LastUpdated);
                         if (typeof(TActivityOutput) == typeof(object))
                             return (TActivityOutput)(object)"null";
-                        return task.AsResult<TActivityOutput>(options);
+                        return task.AsResult<TActivityOutput>(options)!;
                 }
 
                 var diff = task.ETA - clock.UtcNow;
@@ -366,7 +368,7 @@ namespace NeuroSpeech.Eternity
 
             // we are supposed to run this activity now...
             // acquire execution lock...
-            var executionLock = await storage.AcquireLockAsync(key.ID, sequenceId);
+            var executionLock = await storage.AcquireLockAsync(key.ID!, sequenceId);
             try
             {
 
@@ -417,18 +419,18 @@ namespace NeuroSpeech.Eternity
             }
         }
 
-        private object[] BuildParameters(MethodInfo method, string parameters, IServiceProvider serviceProvider)
+        private object?[] BuildParameters(MethodInfo method, string? parameters, IServiceProvider serviceProvider)
         {
             var pas = method.GetParameters();
-            var result = new object[pas.Length];
-            var tuple = JsonSerializer.Deserialize<string[]>(parameters, options);
+            var result = new object?[pas.Length];
+            var tuple = JsonSerializer.Deserialize<string?[]>(parameters!, options);
             for (int i = 0; i < pas.Length; i++)
             {
                 var pa = pas[i];
                 if(pa.GetCustomAttribute<InjectAttribute>() == null)
                 {
-                    var value = tuple[i];
-                    result[i] = JsonSerializer.Deserialize(value, pa.ParameterType, options);
+                    var value = tuple![i];
+                    result[i] = JsonSerializer.Deserialize(value!, pa.ParameterType, options);
                     continue;
                 }
                 result[i] = serviceProvider.GetRequiredService(pa.ParameterType);
@@ -438,7 +440,7 @@ namespace NeuroSpeech.Eternity
 
         private IWorkflow GetWorkflowInstance(Type type, string id, DateTimeOffset eta)
         {
-            var w = Activator.CreateInstance(type) as IWorkflow;
+            var w = (Activator.CreateInstance(type) as IWorkflow)!;
             w.Init(id, this, eta);
             return w;
         }

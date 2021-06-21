@@ -18,18 +18,18 @@ namespace NeuroSpeech.Eternity
     public class WorkflowStep
     {
 
-        public string WorkflowType { get; set; }
-        public string ID { get; set; }
-        public string Parameter { get; set; }
+        public string? WorkflowType { get; set; }
+        public string? ID { get; set; }
+        public string? Parameter { get; set; }
         public DateTimeOffset ETA { get; set; }
         public DateTimeOffset DateCreated { get; set; }
         public DateTimeOffset LastUpdated { get; set; }
 
         public ActivityStatus Status { get; set; }
 
-        public string Result { get; set; }
+        public string? Result { get; set; }
 
-        public string Error { get; set; }
+        public string? Error { get; set; }
 
         public static WorkflowStep Workflow(
             string id,
@@ -37,7 +37,7 @@ namespace NeuroSpeech.Eternity
             object input,
             DateTimeOffset eta,
             DateTimeOffset now,
-            JsonSerializerOptions options = default)
+            JsonSerializerOptions? options = default)
         {
             var step = new WorkflowStep();
             step.WorkflowType = workflowType.AssemblyQualifiedName;
@@ -53,9 +53,9 @@ namespace NeuroSpeech.Eternity
 
     public class ActivityStep
     {
-        public string Method { get; set; }
+        public string? Method { get; set; }
 
-        public string ID { get; set; }
+        public string? ID { get; set; }
 
         public ActivityType ActivityType { get; set; }
 
@@ -69,25 +69,25 @@ namespace NeuroSpeech.Eternity
 
         // public string ParametersHash { get; set; }
 
-        public string Key { get; set; }
+        public string? Key { get; set; }
 
         public string KeyHash => Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(Key));
 
-        public string Parameters { get; set; }
+        public string? Parameters { get; set; }
 
         public ActivityStatus Status { get; set; }
 
-        public string Error { get; set; }
+        public string? Error { get; set; }
 
-        public string Result { get; set; }
+        public string? Result { get; set; }
 
-        public string QueueToken { get; set; }
+        public string? QueueToken { get; set; }
 
         private static SHA256 sha = SHA256.Create();
 
-        internal T AsResult<T>(JsonSerializerOptions options)
+        internal T? AsResult<T>(JsonSerializerOptions options)
         {
-            return JsonSerializer.Deserialize<T>(Result, options);
+            return JsonSerializer.Deserialize<T>(Result!, options);
         }
 
         public static ActivityStep Delay(
@@ -135,7 +135,7 @@ namespace NeuroSpeech.Eternity
             object[] parameters, 
             DateTimeOffset eta,
             DateTimeOffset now,
-            JsonSerializerOptions options = default)
+            JsonSerializerOptions? options = default)
         {
             var step = new ActivityStep();
             step.ActivityType = ActivityType.Activity;

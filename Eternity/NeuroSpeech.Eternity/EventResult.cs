@@ -2,7 +2,7 @@
 {
     public class EventResult
     {
-        public string EventName { get; set; }
-        public string Value { get; set; }
+        public string? EventName { get; set; }
+        public string? Value { get; set; }
     }
 }

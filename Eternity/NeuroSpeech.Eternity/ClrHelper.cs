@@ -57,7 +57,7 @@ namespace NeuroSpeech.Eternity
                 CreateMethod(dt, method);
             }
 
-            return dt.CreateTypeInfo();
+            return dt.CreateTypeInfo()!;
         }
 
         private void CreateMethod(TypeBuilder type, MethodInfo method)
@@ -85,7 +85,7 @@ namespace NeuroSpeech.Eternity
 
             var schedule = "Schedule";
 
-            ParameterInfo sat = null;
+            ParameterInfo? sat = null;
             foreach(var p in method.GetParameters())
             {
                 if(p.GetCustomAttribute<ScheduleAttribute>() != null)

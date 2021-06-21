@@ -84,7 +84,7 @@ namespace NeuroSpeech.Eternity
         /// <param name="context"></param>
         /// <param name="id"></param>
         /// <returns></returns>
-        public static Task<WorkflowStatus<TOutput>> GetStatusAsync(EternityContext context, string id)
+        public static Task<WorkflowStatus<TOutput?>> GetStatusAsync(EternityContext context, string id)
         {
             return context.GetStatusAsync<TOutput>(id);
         }
@@ -97,7 +97,9 @@ namespace NeuroSpeech.Eternity
         /// <summary>
         /// Workflow ID associated with current execution
         /// </summary>
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         public string ID { get; private set; }
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
         /// <summary>
         /// Set this to true to delete entire history of replay after successful or failed execution.
@@ -107,7 +109,9 @@ namespace NeuroSpeech.Eternity
         public bool DeleteHistory { get; set; } = true;
 
 
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         public EternityContext Context { get; private set; }
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
         /// <summary>
         /// Time associated with current execution, it will not be same as current date time when it is replayed
@@ -135,7 +139,7 @@ namespace NeuroSpeech.Eternity
         /// <param name="maxWait"></param>
         /// <param name="names">Names of expected events</param>
         /// <returns></returns>
-        public Task<(string name, string value)> WaitForExternalEventsAsync(TimeSpan maxWait,params string[] names)
+        public Task<(string? name, string? value)> WaitForExternalEventsAsync(TimeSpan maxWait,params string[] names)
         {
             if(maxWait.TotalMilliseconds <= 0)
             {
@@ -235,7 +239,7 @@ namespace NeuroSpeech.Eternity
         async Task<object> IWorkflow.RunAsync(object input)
         {
             var result = await RunAsync((TInput)input);
-            return result;
+            return result!;
         }
     }
 }
