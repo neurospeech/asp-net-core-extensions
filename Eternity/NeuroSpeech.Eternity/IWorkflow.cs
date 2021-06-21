@@ -20,5 +20,7 @@ namespace NeuroSpeech.Eternity
         bool  IsActivityRunning { get; set; }
 
         bool DeleteHistory { get; }
+
+        string ID { get; }
     }
 }

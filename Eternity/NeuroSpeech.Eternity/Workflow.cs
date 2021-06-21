@@ -89,6 +89,22 @@ namespace NeuroSpeech.Eternity
             return context.GetStatusAsync<TOutput>(id);
         }
 
+        ///// <summary>
+        ///// You can wait till given workflow finishes
+        ///// </summary>
+        ///// <param name="context"></param>
+        ///// <param name="id"></param>
+        ///// <returns></returns>
+        //public async Task<T?> WaitForFinishAsync<T>(string id, TimeSpan maxWait)
+        //{
+        //    if (maxWait.TotalSeconds <= 0)
+        //    {
+        //        throw new ArgumentException($"MaxWait cannot be in the past");
+        //    }
+        //    var result = await Context.WaitForFinishAsync(this, id, maxWait);
+        //    return Context.Deserialize<T?>(result);
+        //}
+
         /// <summary>
         /// Returns if the control is inside an activity
         /// </summary>
@@ -141,7 +157,11 @@ namespace NeuroSpeech.Eternity
         /// <returns></returns>
         public Task<(string? name, string? value)> WaitForExternalEventsAsync(TimeSpan maxWait,params string[] names)
         {
-            if(maxWait.TotalMilliseconds <= 0)
+            if (IsActivityRunning)
+            {
+                throw new InvalidOperationException($"Cannot wait for an event inside an activity");
+            }
+            if (maxWait.TotalMilliseconds <= 0)
             {
                 throw new ArgumentException($"{nameof(maxWait)} cannot be in the past");
             }
@@ -149,7 +169,7 @@ namespace NeuroSpeech.Eternity
             {
                 throw new ArgumentException($"{nameof(names)} cannot be empty");
             }
-            return Context.WaitForExternalEventsAsync(this, ID, names, CurrentUtc.Add(maxWait));
+            return Context.WaitForExternalEventsAsync(this, names, CurrentUtc.Add(maxWait));
         }
 
         /// <summary>

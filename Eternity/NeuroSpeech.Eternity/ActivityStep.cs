@@ -12,7 +12,8 @@ namespace NeuroSpeech.Eternity
         Workflow,
         Activity,
         Delay,
-        Event
+        Event,
+        Child
     }
 
     public class WorkflowStep
@@ -149,6 +150,19 @@ namespace NeuroSpeech.Eternity
                 ? $"{step.ID}-{step.ActivityType}-{step.Parameters}"
                 : $"{step.ID}-{step.ActivityType}-{step.DateCreated.Ticks}-{step.Parameters}"; 
             // step.ParametersHash = Convert.ToBase64String(sha.ComputeHash( System.Text.Encoding.UTF8.GetBytes(step.Parameters)));
+            return step;
+        }
+
+        internal static ActivityStep Child(string parentID, string childId, DateTimeOffset eta, DateTimeOffset utcNow)
+        {
+            var step = new ActivityStep();
+            step.ID = parentID;
+            step.ActivityType = ActivityType.Child;
+            step.Parameters = childId;
+            step.ETA = eta;
+            step.DateCreated = utcNow;
+            step.LastUpdated = utcNow;
+            step.Key = $"{step.ID}-{childId}";
             return step;
         }
     }

@@ -167,6 +167,23 @@ namespace NeuroSpeech.Eternity
             }
         }
 
+        //internal async Task<string?> WaitForFinishAsync(IWorkflow workflow, string id, TimeSpan maxWait)
+        //{
+        //    var current = workflow.CurrentUtc.Add(maxWait);
+        //    var completed = $"completed-{id}";
+        //    var failed = $"failed-{id}";
+        //    await WaitForExternalEventsAsync(workflow, new string[] { completed, failed }, current);
+        //    var s = await storage.GetWorkflowAsync(id);
+        //    switch (s.Status)
+        //    {
+        //        case ActivityStatus.Completed:
+        //            return s.Result;
+        //        case ActivityStatus.Failed:
+        //            throw new ActivityFailedException(s.Error!);
+        //    }
+        //    throw new TimeoutException();
+        //}
+
         internal async Task Delay(IWorkflow workflow, string id, DateTimeOffset timeout)
         {
             
@@ -241,16 +258,16 @@ namespace NeuroSpeech.Eternity
             Trigger();
         }
 
-        internal async Task<(string? name, string? value)> WaitForExternalEventsAsync(IWorkflow workflow, string id, string[] names, DateTimeOffset eta)
+        internal async Task<(string? name, string? value)> WaitForExternalEventsAsync(
+            IWorkflow workflow, 
+            string[] names, 
+            DateTimeOffset eta,
+            Func<ActivityStep,Task<ActivityStep>>? onCreate = null)
         {
-            if (workflow.IsActivityRunning)
-            {
-                throw new InvalidOperationException($"Cannot wait for an event inside an activity");
-            }
 
-            var key = ActivityStep.Event(id, names, eta, workflow.CurrentUtc);
+            var key = ActivityStep.Event(workflow.ID, names, eta, workflow.CurrentUtc);
 
-            var status = await GetActivityResultAsync(workflow, key);
+            var status = await GetActivityResultAsync(workflow, key, onCreate);
 
             while (true)
             {
@@ -292,7 +309,10 @@ namespace NeuroSpeech.Eternity
             }
         }
 
-        internal async Task<ActivityStep> GetActivityResultAsync(IWorkflow workflow, ActivityStep key)
+        internal async Task<ActivityStep> GetActivityResultAsync(
+            IWorkflow workflow, 
+            ActivityStep key,
+            Func<ActivityStep,Task<ActivityStep>>? onCreate = null)
         {
             var r = await storage.GetStatusAsync(key);
             if (r != null){
@@ -302,6 +322,10 @@ namespace NeuroSpeech.Eternity
             var qi = await storage.QueueWorkflowAsync(key.ID!, key.ETA);
             key.QueueToken = qi;
             workflow.QueueItemList.Add(qi);
+            if (onCreate != null)
+            {
+                key = await onCreate(key);
+            }
             return key;
         }
 
