@@ -41,9 +41,11 @@ namespace NeuroSpeech.Eternity
                 }
                 catch (RequestFailedException ex)
                 {
-                    if (ex.Status == 412)
+                    switch (ex.Status)
                     {
-                        continue;
+                        case 412:
+                        case 409:
+                            continue;
                     }
                     throw;
                 }
