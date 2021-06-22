@@ -2,7 +2,7 @@
 
 namespace NeuroSpeech.Eternity
 {
-    [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
+    [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = true)]
     public class ActivityAttribute: Attribute
     {
         public readonly bool UniqueParameters;

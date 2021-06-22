@@ -43,7 +43,7 @@ namespace NeuroSpeech.Eternity
             dt.DefineDefaultConstructor(MethodAttributes.Public);
 
 
-            foreach (var method in type.GetMethods())
+            foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy))
             {
                 var a = method.GetCustomAttribute<ActivityAttribute>();
                 if (a == null)
