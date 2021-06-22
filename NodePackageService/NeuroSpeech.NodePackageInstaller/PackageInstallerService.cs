@@ -1,4 +1,6 @@
-﻿using NeuroSpeech.Internal;
+﻿using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.DependencyInjection;
+using NeuroSpeech.Internal;
 using NeuroSpeech.Tasks;
 using System;
 using System.Collections.Generic;
@@ -81,7 +83,7 @@ namespace NeuroSpeech
 
         protected readonly IServiceProvider services;
         readonly IEnumerable<PackagePath> privatePackages;
-        readonly AtomicCache<NodeInstalledPackage> cache;
+        readonly IMemoryCache cache;
         readonly Func<IServiceProvider, PackagePathSegments, Task<string>> versionProvider;
         public PackageInstallerOptions Options { get; }
 
@@ -97,7 +99,7 @@ namespace NeuroSpeech
             this.privatePackages = options.PrivatePackages.Select(x => {
                 return new PackagePath(options, x.ParseNPMPath(), true);
             });
-            this.cache = new AtomicCache<NodeInstalledPackage>();
+            this.cache = services.GetRequiredService<IMemoryCache>();
             this.services = services;
         }
 
@@ -234,13 +236,13 @@ namespace NeuroSpeech
             PackagePathSegments pps = path;
             pps = await this.ResolveVersion(pps);
             var pp = new PackagePath(this.Options, pps, true);
-            return await cache.GetAsync(pp.Package + "@" + pp.Version, async entry => {
+            return await cache.AtomicGetOrCreateAsync(pp.Package + "@" + pp.Version, async entry => {
 
                 entry.SlidingExpiration = this.Options.TTL;
-    
+
                 await InstallAsync(pp);
                 var p = CreatePackage(pp);
-                entry.EvictionCallbacks.Add((a) => {
+                entry.RegisterPostEvictionCallback((a, b, c, d) => {
                     p.Dispose();
                 });
                 return p;
@@ -256,13 +258,14 @@ namespace NeuroSpeech
 
     }
 
-    public class NodeInstalledPackage: IDisposable
+    public class NodeInstalledPackage : IDisposable
     {
         public PackagePath Path;
 
         public virtual void Dispose()
         {
-            
+
         }
     }
+
 }

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking.Internal;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
@@ -347,7 +348,7 @@ namespace EFCoreBulk
                 var tableName = entityType.GetTableName();
 
                 // add primary key..
-                var ke = new EntityProjectionExpression(entityType, firstTable, false);
+                // var ke = new EntityProjectionExpression(entityType, firstTable, false);
                 // var keyColumns = entityType.GetProperties()
                 // .Where(x => x.IsPrimaryKey())
                 // .Select(x => ke.BindProperty(x));
@@ -358,28 +359,30 @@ namespace EFCoreBulk
                 foreach(var kc in keyColumns)
                 {
 
-                    //var columnName = kc.GetColumnName();
+                    var columnName = kc.GetColumnName();
 
                     //if (sql.Projection.Any((x) => x.Alias == columnName))
                     //    continue;
 
                     //var fx = factory.Fragment($"[{firstTable.Alias}].[{columnName}]");
 
-                    sql.AddToProjection(ke.BindProperty(kc));
+                    // sql.AddToProjection(ke.BindProperty(kc));
+                    sql.AddToProjection(factory.Fragment($"[{firstTable.Alias}].[{columnName}]"));
+
                 }
 
                 // search for literal...
-                LiteralExpressionVisitor lv = new LiteralExpressionVisitor();
-                foreach(var (me, c) in lv.GetLiteralAssignments(query.Expression))
-                {
-                    var p = entityType.GetProperties().FirstOrDefault(x => x.Name == me.Name);
-                    var columnName = p.GetColumnName();
-                    if (sql.Projection.Any((x) => x.Alias == columnName))
-                        continue;
-                    var ce = factory.Constant(c, factory.GetTypeMappingForValue(c ));
-                    var pe = new ProjectionExpression(ce, columnName);
-                    (sql.Projection as IList<ProjectionExpression>).Add(pe);
-                }
+                //LiteralExpressionVisitor lv = new LiteralExpressionVisitor();
+                //foreach(var (me, c) in lv.GetLiteralAssignments(query.Expression))
+                //{
+                //    var p = entityType.GetProperties().FirstOrDefault(x => x.Name == me.Name);
+                //    var columnName = p.GetColumnName();
+                //    if (sql.Projection.Any((x) => x.Alias == columnName))
+                //        continue;
+                //    var ce = factory.Constant(c, factory.GetTypeMappingForValue(c ));
+                //    var pe = ProjectionExpression.Add(ce, columnName);
+                //    (sql.Projection as IList<ProjectionExpression>).Add(pe);
+                //}
                 //foreach (var b in lv.GetLiteralAssignments())
                 //{
                 //    var p = entityType.GetProperties().FirstOrDefault(x => x.PropertyInfo == b.Member as PropertyInfo);

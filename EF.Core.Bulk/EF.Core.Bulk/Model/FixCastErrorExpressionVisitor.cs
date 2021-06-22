@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using Microsoft.EntityFrameworkCore.Storage;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
@@ -45,6 +46,27 @@ namespace EFCoreBulk.Model
             this.sqlFactory = factory;
             this.queryContext = queryContext;
         }
+
+        protected override Expression VisitDistinct([NotNullAttribute] DistinctExpression distinctExpression)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override Expression VisitTableValuedFunction([NotNullAttribute] TableValuedFunctionExpression tableValuedFunctionExpression)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override Expression VisitCollate([NotNullAttribute] CollateExpression collateExpression)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override Expression VisitScalarSubquery([NotNullAttribute] ScalarSubqueryExpression scalarSubqueryExpression)
+        {
+            throw new NotImplementedException();
+        }
+
 
         protected override Expression VisitIn(InExpression inExpression)
         {
@@ -257,9 +279,10 @@ namespace EFCoreBulk.Model
             return x?.Update(x.Match.VisitNode(this), x.Pattern.VisitNode(this), x.EscapeChar.VisitNode(this));
         }
 
-        protected override Expression VisitSubSelect(ScalarSubqueryExpression x)
-        {
-            return x?.Update(x.Subquery.VisitNode(this));
-        }
+        //protected override Expression VisitSubSelect(ScalarSubqueryExpression x)
+        //{
+        //    return x?.Update(x.Subquery.VisitNode(this));
+        //}
+
     }
 }

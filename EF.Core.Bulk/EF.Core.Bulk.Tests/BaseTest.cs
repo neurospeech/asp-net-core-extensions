@@ -65,7 +65,8 @@ namespace EFCoreBulk.Tests
         {
             AppDbTestContext db = new AppDbTestContext(ConnectionString);
             // db.Database.EnsureCreated();
-            MigrationHelper.ForSqlServer(db).Migrate();
+            db.MigrateSqlServer()
+                .Migrate();
             Seed(db);
             return db;
         }

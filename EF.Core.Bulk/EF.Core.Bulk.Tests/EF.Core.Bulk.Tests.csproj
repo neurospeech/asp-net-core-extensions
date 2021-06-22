@@ -17,7 +17,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\EFCoreLiveMigration\NeuroSpeech.EFCoreLiveMigration\NeuroSpeech.EFCoreLiveMigration.csproj" />
-    <ProjectReference Include="..\EF.Core.Bulk\EF.Core.Bulk.csproj" />
     <ProjectReference Include="..\NeuroSpeech.EFCore.Mock\NeuroSpeech.EFCore.Mock.csproj" />
   </ItemGroup>
 
