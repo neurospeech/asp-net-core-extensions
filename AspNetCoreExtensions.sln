@@ -29,7 +29,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "NodePackageService", "NodeP
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NodeServerTest", "NodePackageService\NodeServerTest\NodeServerTest.csproj", "{ECE47369-C11A-4545-96D7-EC60AC563F17}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "EF.Core.Bulk", "EF.Core.Bulk", "{A0A1AD88-B434-4C96-9F81-70AC22CAB580}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "EF.Core.Mock", "EF.Core.Mock", "{A0A1AD88-B434-4C96-9F81-70AC22CAB580}"
+	ProjectSection(SolutionItems) = preProject
+		EFCore.Mock\README.md = EFCore.Mock\README.md
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "EFCoreLiveMigration", "EFCoreLiveMigration", "{EE57ED11-49D2-4D8F-BA62-5EA90A1C0754}"
 EndProject
@@ -40,8 +43,6 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSpeech.NodePackageInstaller", "NodePackageService\NeuroSpeech.NodePackageInstaller\NeuroSpeech.NodePackageInstaller.csproj", "{7C5381F3-A94F-495A-B09F-2249452F492D}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSpeech.AspNet.NodeServices", "NodePackageService\NeuroSpeech.AspNet.NodeServices\NeuroSpeech.AspNet.NodeServices.csproj", "{359A420C-7F87-4408-A3AA-A641023A4054}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSpeech.EFCore.Mock", "EF.Core.Bulk\NeuroSpeech.EFCore.Mock\NeuroSpeech.EFCore.Mock.csproj", "{A32ADAEA-6E4D-4227-BFB8-68EEDA08C96A}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "WKHtmlToXSharp", "WKHtmlToXSharp", "{37391082-96EC-4E64-B631-90479DD9088C}"
 EndProject
@@ -81,7 +82,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSpeech.Eternity.Tests"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSpeech.Eternity.AzureStorage", "Eternity\NeuroSpeech.Eternity.AzureStorage\NeuroSpeech.Eternity.AzureStorage.csproj", "{5A71ADD8-C9B1-489A-9D12-5C88813B8131}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NeuroSpeech.Eternity.Mocks", "Eternity\NeuroSpeech.Eternity.Mocks\NeuroSpeech.Eternity.Mocks.csproj", "{AEA1B40E-B146-4636-805E-59EB725AD640}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSpeech.Eternity.Mocks", "Eternity\NeuroSpeech.Eternity.Mocks\NeuroSpeech.Eternity.Mocks.csproj", "{AEA1B40E-B146-4636-805E-59EB725AD640}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NeuroSpeech.EFCore.Mock", "EFCore.Mock\NeuroSpeech.EFCore.Mock\NeuroSpeech.EFCore.Mock.csproj", "{A09ACF1F-F96A-49B0-90F2-868E1DE5748E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -125,10 +128,6 @@ Global
 		{359A420C-7F87-4408-A3AA-A641023A4054}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{359A420C-7F87-4408-A3AA-A641023A4054}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{359A420C-7F87-4408-A3AA-A641023A4054}.Release|Any CPU.Build.0 = Release|Any CPU
-		{A32ADAEA-6E4D-4227-BFB8-68EEDA08C96A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A32ADAEA-6E4D-4227-BFB8-68EEDA08C96A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A32ADAEA-6E4D-4227-BFB8-68EEDA08C96A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A32ADAEA-6E4D-4227-BFB8-68EEDA08C96A}.Release|Any CPU.Build.0 = Release|Any CPU
 		{FDD7E685-A1FB-411A-A2E5-73C654D9F221}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{FDD7E685-A1FB-411A-A2E5-73C654D9F221}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FDD7E685-A1FB-411A-A2E5-73C654D9F221}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -181,6 +180,10 @@ Global
 		{AEA1B40E-B146-4636-805E-59EB725AD640}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AEA1B40E-B146-4636-805E-59EB725AD640}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AEA1B40E-B146-4636-805E-59EB725AD640}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A09ACF1F-F96A-49B0-90F2-868E1DE5748E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A09ACF1F-F96A-49B0-90F2-868E1DE5748E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A09ACF1F-F96A-49B0-90F2-868E1DE5748E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A09ACF1F-F96A-49B0-90F2-868E1DE5748E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -195,7 +198,6 @@ Global
 		{A271C10B-467B-49BD-B23B-239E34521500} = {EE57ED11-49D2-4D8F-BA62-5EA90A1C0754}
 		{7C5381F3-A94F-495A-B09F-2249452F492D} = {6171F658-37E5-4889-9CBD-1C51945918CC}
 		{359A420C-7F87-4408-A3AA-A641023A4054} = {6171F658-37E5-4889-9CBD-1C51945918CC}
-		{A32ADAEA-6E4D-4227-BFB8-68EEDA08C96A} = {A0A1AD88-B434-4C96-9F81-70AC22CAB580}
 		{FDD7E685-A1FB-411A-A2E5-73C654D9F221} = {37391082-96EC-4E64-B631-90479DD9088C}
 		{F6A9804B-FA06-47FC-8A99-25D0A2D97047} = {37391082-96EC-4E64-B631-90479DD9088C}
 		{E376A297-E453-4644-8904-107C8B9F1210} = {EE57ED11-49D2-4D8F-BA62-5EA90A1C0754}
@@ -210,6 +212,7 @@ Global
 		{6F370355-C2A9-46A7-9EF1-27EF19746E29} = {33A3E9CA-3C70-4438-A28A-4CD2D55DF511}
 		{5A71ADD8-C9B1-489A-9D12-5C88813B8131} = {33A3E9CA-3C70-4438-A28A-4CD2D55DF511}
 		{AEA1B40E-B146-4636-805E-59EB725AD640} = {33A3E9CA-3C70-4438-A28A-4CD2D55DF511}
+		{A09ACF1F-F96A-49B0-90F2-868E1DE5748E} = {A0A1AD88-B434-4C96-9F81-70AC22CAB580}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {65594421-E05B-4646-94E0-260254DC3212}
