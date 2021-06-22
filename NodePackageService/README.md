@@ -74,3 +74,6 @@ services.AddSingleton<NodePackageService>(
 `GetInstalledPackageAsync` method will create a folder `{TempFolder}\npm\{package}\v{version}` and it will extract package from given npm registry.
 
 > It will not install npm package, as IIS Website may not have sufficient rights to execute `npm` command. So in order to make things simpler, NodeServer inspects package.json file and downloads all dependencies in `node_modules` folder. It does not execute any scripts.
+
+# Bundled Dependencies
+The best way to publish package would be to bundle all dependencies, so this Library will ignore package with bundled dependencies assuming package contains all necessary dependencies.
