@@ -49,7 +49,8 @@ namespace NeuroSpeech
                 var versions = token as JObject;
                 if(versions.TryGetValue(v, out token))
                 {
-                    var dist = token as JObject;
+
+                    var dist = (token as JObject).GetValue("dist") as JObject;
                     return dist.GetValue("tarball").ToString();
                 }
             }
