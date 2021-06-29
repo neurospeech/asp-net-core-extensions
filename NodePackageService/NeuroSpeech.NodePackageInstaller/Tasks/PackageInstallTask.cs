@@ -123,10 +123,15 @@ namespace NeuroSpeech.Tasks
 
             var tempFolder = new DirectoryInfo($"{this.packagePath.Options.TempFolder}\\tmp\\{Guid.NewGuid()}");
 
+            // first try version url...
+            var registry = new NpmRegistry(client);
+
+            // get tarball url...
+            var tarball = await registry.GetTarBallAsync($"{package.Options.NPMRegistry}/{package.Package}", package.Version);
 
             try
             {
-                using (var stream = await client.GetStreamAsync(package.PrivateNpmUrl))
+                using (var stream = await client.GetStreamAsync(tarball))
                 {
                     using (var ungzStream = new GZipInputStream(stream))
                     {
