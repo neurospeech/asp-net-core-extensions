@@ -16,13 +16,21 @@ namespace NeuroSpeech
             this.client = client;
         }
 
-        public async Task<string> GetTarBallAsync(string url, string version)
+        public async Task<string> GetTarBallAsync(string url, string package, string version)
         {
-            try {
-                return await GetTarBallForAsync(url + "/" + version, version);
+            url = url.TrimEnd('/') + "/" + package;
+            try
+            {
+                try
+                {
+                    return await GetTarBallForAsync(url + "/" + version, version);
+                }
+                catch { }
+                return await GetTarBallForAsync(url, version);
+            }catch(Exception ex)
+            {
+                throw new ArgumentException($"Fetch Failed for {url} {version} {ex.Message}\r\n{ex.ToString()}");
             }
-            catch { }
-            return await GetTarBallForAsync(url, version);
         }
 
         private async Task<string> GetTarBallForAsync(string url, string v)

@@ -127,7 +127,7 @@ namespace NeuroSpeech.Tasks
             var registry = new NpmRegistry(client);
 
             // get tarball url...
-            var tarball = await registry.GetTarBallAsync($"{package.Options.NPMRegistry}/{package.Package}", package.Version);
+            var tarball = await registry.GetTarBallAsync($"{package.Options.NPMRegistry},{package.Package}", package.Version);
 
             try
             {
