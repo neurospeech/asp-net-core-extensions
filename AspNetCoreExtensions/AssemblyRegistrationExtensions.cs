@@ -10,27 +10,6 @@ using System.Threading.Tasks;
 
 namespace NeuroSpeech
 {
-
-    /// <summary>
-    /// Registers current assembly with Assembly parts
-    /// </summary>
-    [System.AttributeUsage(AttributeTargets.Assembly, Inherited = false, AllowMultiple = false)]
-
-
-    public sealed class RegisterAssemblyAttribute : Attribute
-    {
-
-        public readonly bool RegisterParts;
-        public readonly Type StartupType;
-
-        public RegisterAssemblyAttribute(bool registerParts = true, Type startupType = null)
-        {
-            this.StartupType = startupType;
-            this.RegisterParts = registerParts;
-        }
-
-    }
-
     public class AssemblyRegistration
     {
         public Assembly Assembly;
@@ -105,95 +84,6 @@ namespace NeuroSpeech
 
             list.Add(Assembly.GetEntryAssembly(), true);
             return list;
-        }
-
-        /// <summary>
-        /// Reads embedded string resource from given assembly
-        /// </summary>
-        /// <param name="assembly"></param>
-        /// <param name="name"></param>
-        /// <param name="encoding"></param>
-        /// <returns></returns>
-        public static async Task<string> GetStringResourceAsync(
-            this Assembly assembly,
-            string name,
-            Encoding encoding = null)
-        {
-            using (var rs = assembly.GetManifestResourceStream(name))
-            {
-                using (var reader = new StreamReader(rs, encoding ?? Encoding.UTF8))
-                {
-                    return await reader.ReadToEndAsync();
-                }
-            }
-        }
-
-        /// <summary>
-        /// Reads embedded string resource from given assembly
-        /// </summary>
-        /// <param name="assembly"></param>
-        /// <param name="name"></param>
-        /// <param name="encoding"></param>
-        /// <returns></returns>
-        public static string GetStringResource(
-            this Assembly assembly,
-            string name,
-            Encoding encoding = null)
-        {
-            using (var rs = assembly.GetManifestResourceStream(name))
-            {
-                using (var reader = new StreamReader(rs, encoding ?? Encoding.UTF8))
-                {
-                    return reader.ReadToEnd();
-                }
-            }
-        }
-
-        /// <summary>
-        /// Registers given assembly types for DI
-        /// </summary>
-        /// <param name="services"></param>
-        /// <param name="assembly"></param>
-        public static void RegisterAssembly(this IServiceCollection services, Assembly assembly)
-        {
-
-            foreach (var type in assembly.GetExportedTypes())
-            {
-
-                try
-                {
-                    var a = type.GetCustomAttribute<DIRegisterAttribute>();
-                    if (a != null)
-                    {
-                        Type baseType = a.BaseType;
-
-                        Func<IServiceProvider, object> factory = null;
-                        if (a.Factory != null)
-                        {
-                            BaseDIFactory f = Activator.CreateInstance(a.Factory) as BaseDIFactory;
-                            factory = (sp) => f.CreateService(sp);
-                        }
-
-                        if (baseType != null)
-                        {
-                            services.Add(new ServiceDescriptor(baseType, type, a.Type));
-                        }
-                        else
-                        {
-                            if (factory != null)
-                            {
-                                services.Add(new ServiceDescriptor(type, factory, a.Type));
-                            }
-                            else
-                            {
-                                services.Add(new ServiceDescriptor(type,type, a.Type));
-                            }
-                        }
-                    }
-                }
-                catch { }
-            }
-
         }
 
     }
