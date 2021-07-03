@@ -1,9 +1,11 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -56,6 +58,18 @@ namespace NeuroSpeech
             }
         }
 
+        private static List<Type> initializations
+            = new List<Type>();
+
+        public static void InitializeSingletons(this IServiceProvider serviceProvider)
+        {
+            foreach (var i in initializations)
+            {
+                serviceProvider.GetService(i);
+            }
+                
+        }
+
         /// <summary>
         /// Registers given assembly types for DI
         /// </summary>
@@ -79,6 +93,11 @@ namespace NeuroSpeech
                         continue;
 
                     Type baseType = a.BaseType;
+
+                    if(a.Init)
+                    {
+                        initializations.Add(a.BaseType ?? type);
+                    }
 
                     Func<IServiceProvider, object> factory = null;
                     if (a.Factory != null)
