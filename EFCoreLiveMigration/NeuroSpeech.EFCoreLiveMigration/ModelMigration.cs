@@ -152,7 +152,11 @@ namespace NeuroSpeech.EFCoreLiveMigration
         {
             var name = property.DeclaringEntityType.GetTableName();
             var schema = property.DeclaringEntityType.GetSchemaOrDefault();
+#if NET_STANDARD_2_1
             var n = property.GetColumnName(StoreObjectIdentifier.Table(name, null));
+#else
+            var n = property.GetColumnName();
+#endif
             return n;
         }
     }

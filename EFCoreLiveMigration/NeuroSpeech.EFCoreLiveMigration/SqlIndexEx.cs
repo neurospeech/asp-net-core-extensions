@@ -20,7 +20,11 @@ namespace NeuroSpeech.EFCoreLiveMigration
         {
             this.Table = table;
             this.Index = index;
+#if NETSTANDARD2_1
             this.Name = index.GetDatabaseName();
+#else
+            this.Name = index.GetName();
+#endif
             this.DeclaringEntityType = index.DeclaringEntityType;
             this.Properties = index.Properties;
             this.IncludedProperties = index.GetIncludeProperties();

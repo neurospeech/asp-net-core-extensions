@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.1</TargetFramework>
+    <TargetFrameworks>netstandard2.0;netstandard2.1</TargetFrameworks>
     <Authors>Akash Kava</Authors>
     <Company>NeuroSpeech Technologies Pvt Ltd</Company>
     <Product>EF Core Live Migration</Product>
@@ -10,12 +10,27 @@
     <RepositoryUrl>https://github.com/neurospeech/ef-core-live-migration</RepositoryUrl>
     <PackageTags>EF, Core, Live Migration</PackageTags>
     <Version>1.0.2</Version>
+    <LangVersion>latest</LangVersion>
     <DebugSymbols>true</DebugSymbols>
     <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
   </PropertyGroup>
 
-  <ItemGroup>    
+  <PropertyGroup Condition="'$(TargetFramework)'=='netstandard2.1'">
+    <DefineConstants>NET_STANDARD_2_1</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(TargetFramework)'=='netstandard2.0'">
+    <DefineConstants>NET_STANDARD_2_0</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)'=='netstandard2.1'">
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="5.0.6" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0'">
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="3.1.10" />
+  </ItemGroup>
+  
+  <ItemGroup>    
     <PackageReference Include="TemplatedQuery.EFCore" Version="1.0.22" />
   </ItemGroup>
 

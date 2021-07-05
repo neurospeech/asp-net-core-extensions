@@ -41,10 +41,15 @@ namespace NeuroSpeech.EFCoreLiveMigration
             this.DataType = property.GetColumnTypeForSql();
             if (property.ClrType.IsAssignableFrom(typeof(decimal)))
             {
+#if NET_STANDARD_2_1
                 var ps = property.GetScale();
                 var pp = property.GetPrecision();
                 this.Precision = pp ?? length;
                 this.DecimalScale = ps ?? d;
+#else
+                this.Precision = 18;
+                this.DecimalScale = 2;
+#endif
             }
             else
             {
