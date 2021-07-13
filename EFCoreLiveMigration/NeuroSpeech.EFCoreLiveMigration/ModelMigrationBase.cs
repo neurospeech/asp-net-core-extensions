@@ -77,32 +77,36 @@ namespace NeuroSpeech.EFCoreLiveMigration
 
             var entities = GetEntityTypes();
 
-            foreach (var entity in entities)
+            try
             {
-                try
+                context.Database.OpenConnection();
+                using (var tx = context.Database.GetDbConnection().BeginTransaction(System.Data.IsolationLevel.Serializable))
                 {
-
-                    if (entity.ClrType.GetCustomAttribute<IgnoreMigrationAttribute>() != null)
-                        continue;
-
-
-                    context.Database.OpenConnection();
-                    using (var tx = context.Database.GetDbConnection().BeginTransaction(System.Data.IsolationLevel.Serializable))
+                    this.Transaction = tx;
+                    foreach (var entity in entities)
                     {
-                        this.Transaction = tx;
+                        if (entity.ClrType.GetCustomAttribute<IgnoreMigrationAttribute>() != null)
+                            continue;
 
                         var table = new DbTableInfo(entity, Escape);
                         MigrateEntity(table);
 
-                        tx.Commit();
                     }
-                }
-                finally
-                {
-                    context.Database.CloseConnection();
+                    foreach (var entity in entities)
+                    {
+                        if (entity.ClrType.GetCustomAttribute<IgnoreMigrationAttribute>() != null)
+                            continue;
+
+                        var table = new DbTableInfo(entity, Escape);
+                        PostMigrateEntity(table);
+                    }
+                    tx.Commit();
                 }
             }
-
+            finally
+            {
+                context.Database.CloseConnection();
+            }
         }
 
         public virtual DbCommand CreateCommand(string command, IEnumerable<KeyValuePair<string, object>>? plist = null)
@@ -200,7 +204,7 @@ namespace NeuroSpeech.EFCoreLiveMigration
 
         internal protected abstract string LoadIndexes(IEntityType entity);
 
-        protected virtual void MigrateEntity(DbTableInfo table)
+        protected void MigrateEntity(DbTableInfo table)
         {
 
             this.columns.Clear(table);
@@ -221,11 +225,14 @@ namespace NeuroSpeech.EFCoreLiveMigration
                 var column = new DbColumnInfo(table, property, Escape);
                 EnsureCreated(column, forceDefault);
             }
+        }
 
+        protected void PostMigrateEntity(DbTableInfo table)
+        {
             // create indexes...
-            foreach(var index in table.EntityType.GetIndexes())
+            foreach (var index in table.EntityType.GetIndexes())
             {
-               var i = new SqlIndexEx(table,index, this);
+                var i = new SqlIndexEx(table, index, this);
                 EnsureCreated(i);
             }
 
