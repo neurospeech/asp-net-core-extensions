@@ -75,6 +75,12 @@ namespace RetroCoreFit
             
         }
 
+        public BaseService(HttpClient client)
+        {
+
+            this.client = client;
+        }
+
         [EditorBrowsable(EditorBrowsableState.Never)]
         public Task<T> Invoke<T>(string key, params object[] plist) {
 
