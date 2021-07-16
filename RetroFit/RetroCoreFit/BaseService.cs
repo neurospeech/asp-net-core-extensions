@@ -2,6 +2,7 @@
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -74,6 +75,7 @@ namespace RetroCoreFit
             
         }
 
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public Task<T> Invoke<T>(string key, params object[] plist) {
 
 
@@ -86,6 +88,15 @@ namespace RetroCoreFit
 
             return InvokeAsync<T>(atlist.Method, atlist.Path, rlist);
         }
+
+        public Task<T> PostAsync<T>(string path, params RestParameter[] args) =>
+            InvokeAsync<T>(HttpMethod.Post, path, args);
+        public Task<T> GetAsync<T>(string path, params RestParameter[] args) =>
+            InvokeAsync<T>(HttpMethod.Get, path, args);
+        public Task<T> DeleteAsync<T>(string path, params RestParameter[] args) =>
+            InvokeAsync<T>(HttpMethod.Delete, path, args);
+        public Task<T> PutAsync<T>(string path, params RestParameter[] args) =>
+            InvokeAsync<T>(HttpMethod.Put, path, args);
 
         protected virtual async Task<T> InvokeAsync<T>(HttpMethod method, string path, IEnumerable<RestParameter> plist)
         {
