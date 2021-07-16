@@ -405,7 +405,9 @@ namespace RetroCoreFit
 
         protected virtual HttpContent EncodePost(object value)
         {
-            HttpContent content = new StringContent(JsonConvert.SerializeObject(value), Encoding.UTF8, "application/json");
+            if (value is HttpContent content)
+                return content;
+            content = new StringContent(JsonConvert.SerializeObject(value), Encoding.UTF8, "application/json");
             return content;
         }
     }
