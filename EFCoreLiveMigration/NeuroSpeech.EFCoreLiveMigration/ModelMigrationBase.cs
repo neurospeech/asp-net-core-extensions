@@ -236,8 +236,16 @@ namespace NeuroSpeech.EFCoreLiveMigration
             {
                 if (!property.IsNullable)
                 {
-                    if (property.DefaultValue == null)
-                        throw new InvalidOperationException($"You must specify the default value for property {property.TableNameAndColumnName} as table contains rows");
+                    if (property.DefaultValue == null) {
+                        if(existing != null)
+                        {
+                            property.Table.columnsRenamed.Add((existing, property));
+                        } else
+                        {
+                            property.Table.columnsAdded.Add(property);
+                        }
+                        throw new InvalidOperationException($"You must specify the default value for property {property} as table contains rows");
+                    }
                 }
             }
 
