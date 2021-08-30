@@ -12,78 +12,41 @@ using System.Text;
 namespace NeuroSpeech.EFCoreLiveMigration
 {
 
-    public class MigrationResult : IMigrationEvents
+    public class MigrationResult
     {
-        void IMigrationEvents.OnColumnAdded(DbColumnInfo column, Column? existing)
+        private readonly List<DbTableInfo> tables;
+
+        public MigrationResult(List<DbTableInfo> tables)
         {
-            
+            this.tables = tables;
         }
 
-        void IMigrationEvents.OnIndexCreated(SqlIndexEx index)
-        {
-            
-        }
-
-        void IMigrationEvents.OnIndexDropped(SqlIndexEx index)
-        {
-            
-        }
-
-        void IMigrationEvents.OnTableCreated(DbTableInfo table)
-        {
-            
-        }
-
-        void IMigrationEvents.OnTableModified(
-            DbTableInfo table,
-            IReadOnlyCollection<DbColumnInfo> columnsAdded,
-            IReadOnlyCollection<(Column from, DbColumnInfo to)> columnsRenamed,
-            IReadOnlyCollection<(bool Dropped, SqlIndexEx index)> indexesUpdated)
-        {
-            modifications.Add(new Modification {
-                Table = table,
-                ColumnsAdded = columnsAdded,
-                ColumnsRenamed = columnsRenamed,
-                Indexes = indexesUpdated
-            });
-        }
-
-        private List<Modification> modifications = new List<Modification>();
-
-        public IReadOnlyCollection<Modification> Modifications => modifications.AsReadOnly();
-
-        public class Modification
-        {
-            public DbTableInfo Table { get; internal set; }
-            public IReadOnlyCollection<DbColumnInfo> ColumnsAdded { get; internal set; }
-            public IReadOnlyCollection<(Column from, DbColumnInfo to)> ColumnsRenamed { get; internal set; }
-            public IReadOnlyCollection<(bool Dropped, SqlIndexEx index)> Indexes { get; internal set; }
-        }
+        public IReadOnlyCollection<DbTableInfo> Modifications => tables;
 
         public string Log
         {
             get
             {
                 StringBuilder sb = new StringBuilder();
-                foreach(var m in modifications)
+                foreach(var m in tables)
                 {
-                    sb.AppendLine($"Table {m.Table.TableName} modified.");
-                    foreach(var c in m.ColumnsAdded)
+                    sb.AppendLine($"Table {m.TableName} modified.");
+                    foreach(var c in m.columnsAdded)
                     {
                         sb.AppendLine($"\tColumn: {c.ColumnName} added.");
                     }
-                    foreach (var c in m.ColumnsRenamed)
+                    foreach (var c in m.columnsRenamed)
                     {
                         sb.AppendLine($"\tColumn: {c.from.ColumnName} renamed to {c.to.ColumnName}.");
                     }
-                    foreach (var i in m.Indexes)
+                    foreach (var i in m.indexedUpdated)
                     {
                         if (i.Dropped)
                         {
-                            sb.AppendLine($"\tIndex: {i.index.Name} dropped.");
+                            sb.AppendLine($"\tIndex: {i.Index.Name} dropped.");
                             continue;
                         }
-                        sb.AppendLine($"\t{i.index.Name} created.");
+                        sb.AppendLine($"\t{i.Index.Name} created.");
                     }
                 }
                 return sb.ToString();
@@ -153,13 +116,8 @@ namespace NeuroSpeech.EFCoreLiveMigration
 
         public MigrationResult Migrate()
         {
-            var r = new MigrationResult();
-            this.handler.Add(r);
-
             var entities = GetEntityTypes();
-
-            
-
+            List<DbTableInfo> modifications = new List<DbTableInfo>();
             try
             {
                 context.Database.OpenConnection();
@@ -172,6 +130,7 @@ namespace NeuroSpeech.EFCoreLiveMigration
                             continue;
 
                         var table = new DbTableInfo(entity, Escape);
+                        modifications.Add(table);
                         MigrateEntity(table);
 
                     }
@@ -180,7 +139,12 @@ namespace NeuroSpeech.EFCoreLiveMigration
                         if (entity.ClrType.GetCustomAttribute<IgnoreMigrationAttribute>() != null)
                             continue;
 
-                        var table = new DbTableInfo(entity, Escape);
+                        var table = modifications.FirstOrDefault(x => x.EntityType == entity);
+                        if(table == null)
+                        {
+                            table = new DbTableInfo(entity, Escape);
+                            modifications.Add(table);
+                        }
                         PostMigrateEntity(table);
                     }
                     tx.Commit();
@@ -190,7 +154,7 @@ namespace NeuroSpeech.EFCoreLiveMigration
             {
                 context.Database.CloseConnection();
             }
-            return r;
+            return new MigrationResult(modifications);
         }
 
         public virtual DbCommand CreateCommand(string command, IEnumerable<KeyValuePair<string, object>>? plist = null)
@@ -277,10 +241,10 @@ namespace NeuroSpeech.EFCoreLiveMigration
 
             if(existing != null)
             {
-                property.Table.ColumnsRenamed.Add((existing, property));
+                property.Table.columnsRenamed.Add((existing, property));
             } else
             {
-                property.Table.ColumnsAdded.Add(property);
+                property.Table.columnsAdded.Add(property);
             }
             handler.OnColumnAdded(property, existing);
 
@@ -320,7 +284,7 @@ namespace NeuroSpeech.EFCoreLiveMigration
                 EnsureCreated(i);
             }
 
-            handler.OnTableModified(table, table.ColumnsAdded, table.ColumnsRenamed, table.IndexedUpdated);
+            handler.OnTableModified(table, table.columnsAdded, table.columnsRenamed, table.indexedUpdated);
         }
 
         internal protected abstract bool HasAnyRows(DbTableInfo table);
@@ -344,7 +308,7 @@ namespace NeuroSpeech.EFCoreLiveMigration
 
             CreateIndex(index);
             handler.OnIndexCreated(index);
-            index.Table.IndexedUpdated.Add((existing != null, index));
+            index.Table.indexedUpdated.Add((existing != null, index));
         }
 
         protected abstract void DropIndex(SqlIndexEx index);

@@ -22,9 +22,15 @@ namespace NeuroSpeech.EFCoreLiveMigration
 
         public readonly IEntityType EntityType;
 
-        internal readonly List<DbColumnInfo> ColumnsAdded = new List<DbColumnInfo>();
-        internal readonly List<(Column from, DbColumnInfo to)> ColumnsRenamed = new List<(Column from, DbColumnInfo to)>();
-        internal readonly List<(bool Dropped, SqlIndexEx Index)> IndexedUpdated = new List<(bool Dropped, SqlIndexEx Index)>();
+        internal readonly List<DbColumnInfo> columnsAdded = new List<DbColumnInfo>();
+        internal readonly List<(Column from, DbColumnInfo to)> columnsRenamed = new List<(Column from, DbColumnInfo to)>();
+        internal readonly List<(bool Dropped, SqlIndexEx Index)> indexedUpdated = new List<(bool Dropped, SqlIndexEx Index)>();
+
+        public IReadOnlyCollection<DbColumnInfo> ColumnsAdded => columnsAdded.AsReadOnly();
+
+        public IReadOnlyCollection<(Column from, DbColumnInfo to)> ColumnsRenamed => columnsRenamed.AsReadOnly();
+
+        public IReadOnlyCollection<(bool Dropped, SqlIndexEx Index)> IndexesUpdated => indexedUpdated.AsReadOnly();
 
         public DbTableInfo(IEntityType type, Func<string, string> escape)
         {
