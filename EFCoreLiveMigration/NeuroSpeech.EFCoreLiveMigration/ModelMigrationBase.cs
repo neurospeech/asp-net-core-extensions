@@ -12,6 +12,85 @@ using System.Text;
 namespace NeuroSpeech.EFCoreLiveMigration
 {
 
+    public class MigrationResult : IMigrationEvents
+    {
+        void IMigrationEvents.OnColumnAdded(DbColumnInfo column, Column? existing)
+        {
+            
+        }
+
+        void IMigrationEvents.OnIndexCreated(SqlIndexEx index)
+        {
+            
+        }
+
+        void IMigrationEvents.OnIndexDropped(SqlIndexEx index)
+        {
+            
+        }
+
+        void IMigrationEvents.OnTableCreated(DbTableInfo table)
+        {
+            
+        }
+
+        void IMigrationEvents.OnTableModified(
+            DbTableInfo table,
+            IReadOnlyCollection<DbColumnInfo> columnsAdded,
+            IReadOnlyCollection<(Column from, DbColumnInfo to)> columnsRenamed,
+            IReadOnlyCollection<(bool Dropped, SqlIndexEx index)> indexesUpdated)
+        {
+            modifications.Add(new Modification {
+                Table = table,
+                ColumnsAdded = columnsAdded,
+                ColumnsRenamed = columnsRenamed,
+                Indexes = indexesUpdated
+            });
+        }
+
+        private List<Modification> modifications = new List<Modification>();
+
+        public IReadOnlyCollection<Modification> Modifications => modifications.AsReadOnly();
+
+        public class Modification
+        {
+            public DbTableInfo Table { get; internal set; }
+            public IReadOnlyCollection<DbColumnInfo> ColumnsAdded { get; internal set; }
+            public IReadOnlyCollection<(Column from, DbColumnInfo to)> ColumnsRenamed { get; internal set; }
+            public IReadOnlyCollection<(bool Dropped, SqlIndexEx index)> Indexes { get; internal set; }
+        }
+
+        public string Log
+        {
+            get
+            {
+                StringBuilder sb = new StringBuilder();
+                foreach(var m in modifications)
+                {
+                    sb.AppendLine($"Table {m.Table.TableName} modified.");
+                    foreach(var c in m.ColumnsAdded)
+                    {
+                        sb.AppendLine($"\tColumn: {c.ColumnName} added.");
+                    }
+                    foreach (var c in m.ColumnsRenamed)
+                    {
+                        sb.AppendLine($"\tColumn: {c.from.ColumnName} renamed to {c.to.ColumnName}.");
+                    }
+                    foreach (var i in m.Indexes)
+                    {
+                        if (i.Dropped)
+                        {
+                            sb.AppendLine($"\tIndex: {i.index.Name} dropped.");
+                            continue;
+                        }
+                        sb.AppendLine($"\t{i.index.Name} created.");
+                    }
+                }
+                return sb.ToString();
+            }
+        }
+    }
+
     public abstract class ModelMigrationBase
     {
 
@@ -72,10 +151,14 @@ namespace NeuroSpeech.EFCoreLiveMigration
             return r;
         }
 
-        public void Migrate()
+        public MigrationResult Migrate()
         {
+            var r = new MigrationResult();
+            this.handler.Add(r);
 
             var entities = GetEntityTypes();
+
+            
 
             try
             {
@@ -107,6 +190,7 @@ namespace NeuroSpeech.EFCoreLiveMigration
             {
                 context.Database.CloseConnection();
             }
+            return r;
         }
 
         public virtual DbCommand CreateCommand(string command, IEnumerable<KeyValuePair<string, object>>? plist = null)

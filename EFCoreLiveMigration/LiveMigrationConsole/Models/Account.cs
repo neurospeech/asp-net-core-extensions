@@ -1,4 +1,5 @@
-﻿using NeuroSpeech.EFCoreLiveMigration;
+﻿using System;
+using NeuroSpeech.EFCoreLiveMigration;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
@@ -31,6 +32,9 @@ namespace LiveMigrationConsole.Models
         public decimal Balance { get; set; }
 
         public decimal? Total { get; set; }
+
+        [Column(TypeName = "datetime")]
+        public DateTime DateCreated { get; set; }
 
         public ICollection<AccountEvent> Events { get; set; }
     }

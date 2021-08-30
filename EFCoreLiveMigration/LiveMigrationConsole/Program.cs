@@ -20,6 +20,7 @@ namespace LiveMigrationConsole
                 var acc = new Account {
                     DisplayName = "A",
                     AccountType = "Admin",
+                    DateCreated = DateTime.UtcNow,
                     Events = new List<AccountEvent>
                     {
                         new AccountEvent{ 
