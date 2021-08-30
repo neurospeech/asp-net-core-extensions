@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore.Metadata;
 using System;
 using System.ComponentModel;
 using System.Reflection;
+using System.Text;
 
 namespace NeuroSpeech.EFCoreLiveMigration
 {
@@ -75,6 +76,35 @@ namespace NeuroSpeech.EFCoreLiveMigration
                     }
                 }
             }
+        }
+
+        public override string ToString()
+        {
+            var sb = new StringBuilder();
+            sb.Append(DataType);
+            if (DataLength > 0)
+            {
+                sb.Append('(');
+                sb.Append(DataLength);
+                sb.Append(')');
+            }
+            if (Precision != null)
+            {
+                sb.Append('(');
+                sb.Append(Precision);
+                sb.Append(',');
+                sb.Append(DecimalScale);
+                sb.Append(')');
+            }
+            if (IsNullable)
+            {
+                sb.Append(" NULL ");
+            }
+            else
+            {
+                sb.Append(" NOT NULL ");
+            }
+            return sb.ToString();
         }
     }
 }

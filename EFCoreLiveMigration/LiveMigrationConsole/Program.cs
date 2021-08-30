@@ -15,7 +15,8 @@ namespace LiveMigrationConsole
 
             using (var db = new ERPContext(options.Options)) {
 
-                db.MigrateSqlServer().Migrate();
+                var r = db.MigrateSqlServer().Migrate();
+                Console.WriteLine(r.Log);
 
                 var acc = new Account {
                     DisplayName = "A",

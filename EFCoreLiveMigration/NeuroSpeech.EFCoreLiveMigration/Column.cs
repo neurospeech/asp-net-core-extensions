@@ -47,5 +47,33 @@ namespace NeuroSpeech.EFCoreLiveMigration
             //}
             return true;
         }
+
+        public override string ToString()
+        {
+            var sb = new StringBuilder();
+            sb.Append(DataType);
+            if(DataLength > 0)
+            {
+                sb.Append('(');
+                sb.Append(DataLength);
+                sb.Append(')');
+            }
+            if(NumericPrecision != null)
+            {
+                sb.Append('(');
+                sb.Append(NumericPrecision);
+                sb.Append(',');
+                sb.Append(NumericScale);
+                sb.Append(')');
+            }
+            if (IsNullable)
+            {
+                sb.Append(" NULL ");
+            } else
+            {
+                sb.Append(" NOT NULL ");
+            }
+            return sb.ToString();
+        }
     }
 }

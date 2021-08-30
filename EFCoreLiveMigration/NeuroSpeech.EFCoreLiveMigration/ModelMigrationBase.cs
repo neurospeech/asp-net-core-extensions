@@ -37,7 +37,7 @@ namespace NeuroSpeech.EFCoreLiveMigration
                     }
                     foreach (var c in m.columnsRenamed)
                     {
-                        sb.AppendLine($"\tColumn: {c.from.ColumnName} renamed to {c.to.ColumnName}.");
+                        sb.AppendLine($"\tColumn: {c.from.ColumnName} {c.from} renamed to {c.to}.");
                     }
                     foreach (var i in m.indexedUpdated)
                     {
