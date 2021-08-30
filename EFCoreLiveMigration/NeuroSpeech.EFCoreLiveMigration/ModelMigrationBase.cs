@@ -54,6 +54,15 @@ namespace NeuroSpeech.EFCoreLiveMigration
         }
     }
 
+    public class MigrationFailedException: Exception
+    {
+        public MigrationFailedException(string message, Exception innerException)
+            : base(message, innerException)
+        {
+
+        }
+    }
+
     public abstract class ModelMigrationBase
     {
 
@@ -149,6 +158,9 @@ namespace NeuroSpeech.EFCoreLiveMigration
                     }
                     tx.Commit();
                 }
+            } catch(Exception ex)
+            {
+                throw new MigrationFailedException(ex.Message + "\r\n" + new MigrationResult(modifications).Log, ex);
             }
             finally
             {
@@ -229,23 +241,20 @@ namespace NeuroSpeech.EFCoreLiveMigration
                 }
             }
 
-
             if (existing != null)
             {
+                property.Table.columnsRenamed.Add((existing, property));
                 string postFix = $"_{DateTime.UtcNow.Ticks}";
                 // rename...
                 RenameColumn(property, postFix);
             }
-
-            AddColumn(property);
-
-            if(existing != null)
-            {
-                property.Table.columnsRenamed.Add((existing, property));
-            } else
+            else
             {
                 property.Table.columnsAdded.Add(property);
             }
+
+            AddColumn(property);
+
             handler.OnColumnAdded(property, existing);
 
         }
