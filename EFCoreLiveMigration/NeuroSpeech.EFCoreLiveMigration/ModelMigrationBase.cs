@@ -72,6 +72,8 @@ namespace NeuroSpeech.EFCoreLiveMigration
 
         internal MigrationEventList handler = new MigrationEventList();
 
+        private bool preventRename = false;
+
         public ModelMigrationBase(DbContext context)
         {
             this.context = context;
@@ -123,8 +125,14 @@ namespace NeuroSpeech.EFCoreLiveMigration
             return r;
         }
 
-        public MigrationResult Migrate()
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="preventRename">Set it to false for development</param>
+        /// <returns></returns>
+        public MigrationResult Migrate(bool preventRename = true)
         {
+            this.preventRename = preventRename;
             var entities = GetEntityTypes();
             List<DbTableInfo> modifications = new List<DbTableInfo>();
             try
@@ -254,6 +262,10 @@ namespace NeuroSpeech.EFCoreLiveMigration
                 property.Table.columnsRenamed.Add((existing, property));
                 string postFix = $"_{DateTime.UtcNow.Ticks}";
                 // rename...
+                if (preventRename)
+                {
+                    throw new InvalidOperationException($"Renaming of existing column not allowed from {existing.ColumnName} {existing} to {property.ColumnName}{property}");
+                }
                 RenameColumn(property, postFix);
             }
             else
