@@ -73,7 +73,7 @@ namespace NeuroSpeech.EFCoreLiveMigration
         {
             var sql = $"SELECT TOP (1) 1 FROM {table.EscapedNameWithSchema}";
             using var cmd = CreateCommand(sql);
-            var i = cmd.ExecuteReader();
+            using var i = cmd.ExecuteReader();
             return i.Read();
         }
 
