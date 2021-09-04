@@ -36,6 +36,7 @@ Useful Cache Extensions</Description>
   </ItemGroup>
   
   <ItemGroup>
+    <ProjectReference Include="..\NeuroSpeech.DependencyInjectionExtensions\NeuroSpeech.DependencyInjectionExtensions.csproj" />
     <ProjectReference Include="..\StringExtensions\StringExtensions.csproj" />
   </ItemGroup>
   

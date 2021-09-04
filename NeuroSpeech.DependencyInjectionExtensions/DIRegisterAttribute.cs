@@ -27,5 +27,10 @@ namespace Microsoft.Extensions.DependencyInjection
 
         public Type Factory { get; set; }
 
+        /// <summary>
+        /// Automatically initializes when services.InitializeSingletons() is called
+        /// </summary>
+        public bool Init { get; set; }
+
     }
 }

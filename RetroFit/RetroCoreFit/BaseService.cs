@@ -2,6 +2,7 @@
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -74,6 +75,13 @@ namespace RetroCoreFit
             
         }
 
+        public BaseService(HttpClient client)
+        {
+
+            this.client = client;
+        }
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public Task<T> Invoke<T>(string key, params object[] plist) {
 
 
@@ -86,6 +94,15 @@ namespace RetroCoreFit
 
             return InvokeAsync<T>(atlist.Method, atlist.Path, rlist);
         }
+
+        protected Task<T> PostAsync<T>(string path, params RestParameter[] args) =>
+            InvokeAsync<T>(HttpMethod.Post, path, args);
+        protected Task<T> GetAsync<T>(string path, params RestParameter[] args) =>
+            InvokeAsync<T>(HttpMethod.Get, path, args);
+        protected Task<T> DeleteAsync<T>(string path, params RestParameter[] args) =>
+            InvokeAsync<T>(HttpMethod.Delete, path, args);
+        protected Task<T> PutAsync<T>(string path, params RestParameter[] args) =>
+            InvokeAsync<T>(HttpMethod.Put, path, args);
 
         protected virtual async Task<T> InvokeAsync<T>(HttpMethod method, string path, IEnumerable<RestParameter> plist)
         {
@@ -388,7 +405,9 @@ namespace RetroCoreFit
 
         protected virtual HttpContent EncodePost(object value)
         {
-            HttpContent content = new StringContent(JsonConvert.SerializeObject(value), Encoding.UTF8, "application/json");
+            if (value is HttpContent content)
+                return content;
+            content = new StringContent(JsonConvert.SerializeObject(value), Encoding.UTF8, "application/json");
             return content;
         }
     }

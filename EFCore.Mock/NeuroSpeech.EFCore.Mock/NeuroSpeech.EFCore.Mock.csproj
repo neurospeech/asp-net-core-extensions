@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>netstandard2.1</TargetFramework>
     <Authors>Akash Kava</Authors>
     <Company>NeuroSpeech Technologies Pvt Ltd</Company>
     <Product>Mock for EFCore with LocalDB</Product>
@@ -17,10 +17,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="5.0.6" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\EFCoreLiveMigration\NeuroSpeech.EFCoreLiveMigration\NeuroSpeech.EFCoreLiveMigration.csproj" />
+    <PackageReference Include="NeuroSpeech.EFCoreAutomaticMigration" Version="1.4.5" />
   </ItemGroup>
 
 </Project>
