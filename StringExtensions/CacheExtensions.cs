@@ -13,7 +13,7 @@ namespace Microsoft.Extensions.Caching.Memory
 
         public static Task<T> AtomicGetOrCreateAsync<T>(
             this IMemoryCache cache,
-            string key,
+            object key,
             Func<ICacheEntry, Task<T>> factory)
         {
             return cache.GetOrCreate<Task<T>>(key, (entry) =>
